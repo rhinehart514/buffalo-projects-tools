@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "checkJs": false,
+    "jsx": "preserve",
+    "strict": true,
+    "incremental": false,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@buffalo/core": ["packages/core/src/index.ts"],
+      "@buffalo/density": ["packages/density/src/index.ts"],
+      "@buffalo/projectmd": ["packages/projectmd/src/index.ts"],
+      "@buffalo/schema": ["packages/schema/src/index.ts"],
+      "@buffalo/ui": ["packages/ui/src/index.ts"]
+    }
+  }
+}

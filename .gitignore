@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tsbuildinfo
+src/generated/
+.DS_Store
+.buffalo/
+*.log

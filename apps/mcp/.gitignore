@@ -1,0 +1,2 @@
+# Built by scripts/build-app.mjs (pnpm --filter buffalo-projects-mcp build)
+src/generated/

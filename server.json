@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.rhinehart514/buffalo-projects-mcp",
+  "description": "Hand your AI agent your builder record: log what you ship and route to the Buffalo grants, events, and programs that fit what you're building.",
+  "version": "0.0.1",
+  "repository": {
+    "url": "https://github.com/rhinehart514/buffalo-projects-tools",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "buffalo-projects-mcp",
+      "version": "0.0.1",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "BUFFALO_TOKEN",
+          "description": "Your Buffalo Projects API token (bp_...) from buffaloprojects.com/app/settings.",
+          "isSecret": true,
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

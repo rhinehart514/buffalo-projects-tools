@@ -1,0 +1,25 @@
+{
+  "name": "@buffalo/density",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./dist/density/src/index.js",
+  "types": "./dist/density/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/density/src/index.d.ts",
+      "default": "./dist/density/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@buffalo/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "typescript": "~5.8.2"
+  }
+}

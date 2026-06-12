@@ -1,0 +1,52 @@
+{
+  "name": "buffalo-projects",
+  "version": "0.0.1",
+  "type": "module",
+  "license": "MIT",
+  "description": "Buffalo Projects CLI — scan codebases, log work, and keep a private, shareable Buffalo work record current from the terminal.",
+  "keywords": [
+    "buffalo",
+    "portfolio",
+    "cli",
+    "developer-tools",
+    "work-log"
+  ],
+  "bin": {
+    "buffalo": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhinehart514/buffalo-projects-tools.git",
+    "directory": "apps/cli"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "tsup",
+    "lint:project": "tsx src/index.ts lint",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.4.0"
+  },
+  "devDependencies": {
+    "@buffalo/core": "workspace:*",
+    "@buffalo/density": "workspace:*",
+    "@buffalo/projectmd": "workspace:*",
+    "@buffalo/schema": "workspace:*",
+    "@buffalo/ui": "workspace:*",
+    "@types/node": "^22.19.15",
+    "tsup": "8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "~5.8.2"
+  },
+  "homepage": "https://buffaloprojects.com"
+}

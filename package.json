@@ -1,0 +1,13 @@
+{
+  "name": "buffalo-projects-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Public MCP server + CLI for Buffalo Projects.",
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "smoke": "pnpm --filter buffalo-projects-mcp smoke"
+  },
+  "license": "MIT"
+}

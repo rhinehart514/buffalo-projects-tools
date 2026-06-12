@@ -1,0 +1,15 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      BUFFALO_TOKEN:
+        type: string
+        title: Buffalo Projects token
+        description: Your API token (bp_...) from buffaloprojects.com/app/settings
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', 'buffalo-projects-mcp@latest'],
+      env: config.BUFFALO_TOKEN ? { BUFFALO_TOKEN: config.BUFFALO_TOKEN } : {}
+    })

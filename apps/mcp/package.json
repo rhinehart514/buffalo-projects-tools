@@ -1,0 +1,56 @@
+{
+  "name": "buffalo-projects-mcp",
+  "version": "0.0.1",
+  "type": "module",
+  "license": "MIT",
+  "description": "Buffalo Projects MCP server — lets an AI co-pilot scan codebases, add projects, and keep a private, shareable Buffalo work record current.",
+  "keywords": [
+    "buffalo",
+    "mcp",
+    "model-context-protocol",
+    "portfolio",
+    "ai"
+  ],
+  "bin": {
+    "buffalo-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhinehart514/buffalo-projects-tools.git",
+    "directory": "apps/mcp"
+  },
+  "scripts": {
+    "build": "node scripts/build-app.mjs && tsup",
+    "build:app": "node scripts/build-app.mjs",
+    "prepublishOnly": "node scripts/build-app.mjs && tsup",
+    "start": "tsx src/index.ts",
+    "smoke": "node scripts/build-app.mjs && tsx src/smoke.ts",
+    "typecheck": "node scripts/build-app.mjs && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.4",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@buffalo/core": "workspace:*",
+    "@buffalo/density": "workspace:*",
+    "@buffalo/projectmd": "workspace:*",
+    "@buffalo/schema": "workspace:*",
+    "@types/node": "^22.19.15",
+    "esbuild": "^0.25.0",
+    "tsup": "8.5.1",
+    "tsx": "^4.20.0",
+    "typescript": "~5.8.2"
+  },
+  "homepage": "https://buffaloprojects.com"
+}

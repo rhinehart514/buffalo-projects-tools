@@ -1,0 +1,27 @@
+{
+  "name": "@buffalo/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/core/src/index.js",
+  "types": "./dist/core/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core/src/index.d.ts",
+      "default": "./dist/core/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@buffalo/density": "workspace:*",
+    "@buffalo/projectmd": "workspace:*",
+    "@buffalo/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "typescript": "~5.8.2"
+  }
+}
