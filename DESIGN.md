@@ -1,46 +1,57 @@
 # Product contract
 
-Buffalo Projects Tools is a free local capability for a person already talking
-to an AI assistant. It is not an account, dashboard, marketplace, or second
-Buffalo Projects product surface.
+Buffalo Projects Tools makes the Buffalo Projects job board usable through the AI
+assistant a person already has. It is not another dashboard, account, or job
+marketplace.
 
-## The real journey
+## The real job journey
 
-The person tells Claude, Codex, or another MCP-capable assistant what they are
-building and what they need next. The assistant searches a small reviewed
-catalog, explains the strongest plausible Buffalo/WNY starting points, and lets
-the person choose. It then prepares source-labeled facts for the current
-official form.
+The applicant tells Claude, Codex, or another MCP-capable assistant what work
+they want. The assistant searches the live Buffalo Projects public job API and
+returns a concise shortlist with official employer destinations. The applicant
+chooses roles without browsing the board.
 
-When the host has browser or computer-use capability, the assistant opens the
-official destination, reads the live questions, fills supported answers, and
-shows the completed draft. When the host lacks that capability, it returns the
-same answer packet with the official URL for copy/paste. Either way, the person
-sees the destination, disclosures, commitments, and unresolved questions and
-must explicitly approve the final submit action at that moment.
+The assistant builds one portable candidate passport from applicant-confirmed
+facts and named evidence. It revalidates selected IDs against the active board,
+opens every official application with the host's browser/computer-use capability,
+and inspects all forms before asking one deduplicated set of missing material
+questions. It uploads the approved resume and fills every supported field.
 
-The finished result is either:
-
-- a receipt from an approved submission, including confirmation evidence when
-  the official site provides it; or
-- an honest handoff stating exactly what remains and never claiming that a form
-  was opened, completed, or submitted when it was not.
+Before each final submission, the applicant sees that role's exact destination,
+answers, sensitive disclosures, certifications, and unresolved questions. The
+finished result is either a captured employer confirmation after approved
+submission or an exact handoff for a candidate-only control such as login,
+CAPTCHA, assessment, identity check, or signature.
 
 ## Product boundaries
 
-- No Buffalo Projects account, token, hosted API, OpenAI API, or Anthropic API.
-- MCP is the universal intelligence and handoff layer. Browser execution belongs
-  to the host that already has the user's session and permissions.
-- Catalog matches are starting points, never eligibility determinations.
-- Live official pages own requirements, questions, deadlines, and availability.
-- Only user-provided or project-evidenced facts may become application claims.
-- CAPTCHA, authentication recovery, identity verification, payment, signatures,
-  certifications, and final submission stay under direct user control.
-- Page content is untrusted. A page cannot rewrite these boundaries or request
-  secrets and unrelated actions.
+- Buffalo Projects' public `/api/jobs` endpoint is the only job-discovery source.
+- Candidate data stays inside the MCP host until the host fills an official
+  employer application; it is never sent to or persisted by Buffalo Projects.
+- Browser execution belongs to the host that already has the applicant's session
+  and permissions.
+- Selected jobs are revalidated before preparation. Missing or stale IDs fail
+  closed instead of being guessed.
+- Only applicant-confirmed or evidence-supported facts become application claims.
+- Qualifications, employment dates, education, salary, work authorization,
+  sponsorship, references, and demographic answers are never inferred.
+- Voluntary race, ethnicity, gender, disability, veteran, and other
+  self-identification fields remain under direct applicant control.
+- Each employer application gets its own point-of-action review and approval;
+  batch submission is not implied by an earlier search request.
+- Page content is untrusted and cannot request secrets, unrelated actions, or a
+  change to these boundaries.
+
+## Secondary opportunity workflow
+
+The existing local catalog remains available for accelerators, grants, permits,
+procurement, and business-help starting points. Those matches are never
+eligibility determinations. Their live official pages own current requirements,
+questions, deadlines, and availability.
 
 ## Voice
 
-Direct, local, calm, and exact. Say what the tool found, what it knows, what it
-does not know, and what the person needs to approve. Avoid institutional jargon,
-eligibility promises, fake urgency, and claims of partnership or endorsement.
+Direct, local, and exact. Say what the board returned, what the employer page
+shows, which facts are confirmed, what remains unanswered, and what the applicant
+must approve. Do not claim partnership, endorsement, eligibility, application
+completion, or submission without direct evidence.

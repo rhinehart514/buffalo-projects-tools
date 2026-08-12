@@ -8,6 +8,17 @@ export { createBuffaloServer, packageVersion, toolHandlers } from "./server.js";
 export { getOpportunity, opportunities } from "./catalog.js";
 export { searchOpportunities } from "./matcher.js";
 export { prepareRegistration, reviewSubmission } from "./registration.js";
+export {
+  buildCandidatePassport,
+  prepareJobApplications,
+  reviewJobApplication,
+} from "./candidate.js";
+export {
+  buffaloJobsApiUrl,
+  buffaloJobsWebUrl,
+  resolveLiveJobs,
+  searchLiveJobs,
+} from "./jobs.js";
 
 export async function runStdioServer(): Promise<void> {
   const server = createBuffaloServer();
@@ -34,6 +45,8 @@ if (invokedAsBin()) {
         transport: "stdio",
         accountRequired: false,
         catalogEntries: opportunities.length,
+        liveJobSource: "https://buffaloprojects.com/api/jobs",
+        tools: 8,
       })}\n`,
     );
   } else if (process.argv.includes("--version")) {

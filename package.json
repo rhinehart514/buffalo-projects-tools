@@ -1,8 +1,8 @@
 {
   "name": "buffalo-projects-tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "Free, local MCP tools that help any AI find and prepare registrations for Buffalo and Western New York opportunities.",
+  "description": "Free MCP tools that let any AI search Buffalo Projects jobs and prepare job or opportunity applications.",
   "keywords": [
     "buffalo",
     "western-new-york",
@@ -10,6 +10,8 @@
     "model-context-protocol",
     "claude",
     "codex",
+    "jobs",
+    "careers",
     "accelerators"
   ],
   "bin": {
