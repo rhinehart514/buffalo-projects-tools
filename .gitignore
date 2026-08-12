@@ -1,7 +1,5 @@
 node_modules/
 dist/
-*.tsbuildinfo
-src/generated/
+*.tgz
 .DS_Store
-.buffalo/
-*.log
+coverage/
