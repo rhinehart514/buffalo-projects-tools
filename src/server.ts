@@ -46,7 +46,7 @@ import {
   saveJobScout,
 } from "./storage.js";
 
-export const packageVersion = "2.0.0";
+export const packageVersion = "2.0.1";
 
 const factSources = [
   "user-confirmed",

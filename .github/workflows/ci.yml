@@ -23,4 +23,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --prod
       - run: pnpm check
+      - run: pnpm build:mcpb
       - run: npm pack --dry-run

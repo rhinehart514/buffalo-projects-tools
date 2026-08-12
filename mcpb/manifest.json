@@ -1,0 +1,48 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/schemas/mcpb-manifest-v0.3.schema.json",
+  "manifest_version": "0.3",
+  "name": "buffalo-apply",
+  "display_name": "Buffalo Apply",
+  "version": "2.0.1",
+  "description": "Turn one resume into evidence-backed applications for jobs across Buffalo and Western New York.",
+  "long_description": "Buffalo Apply connects Claude Desktop to the free Buffalo Projects jobs index. Give it an applicant-provided resume once, rank fitting openings, prepare evidence-backed materials, preserve takeover checkpoints, and keep a local application ledger. It never invents candidate facts and requires applicant approval before final submission.",
+  "author": {
+    "name": "Buffalo Projects",
+    "url": "https://buffaloprojects.com/jobs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rhinehart514/buffalo-projects-tools"
+  },
+  "homepage": "https://buffaloprojects.com/jobs",
+  "documentation": "https://github.com/rhinehart514/buffalo-projects-tools#readme",
+  "support": "https://github.com/rhinehart514/buffalo-projects-tools/issues",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"]
+    }
+  },
+  "tools_generated": true,
+  "prompts_generated": true,
+  "keywords": [
+    "buffalo",
+    "western-new-york",
+    "jobs",
+    "resume",
+    "applications",
+    "careers",
+    "mcp"
+  ],
+  "license": "MIT",
+  "privacy_policies": ["https://buffaloprojects.com/legal/privacy"],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.16.0"
+    }
+  }
+}

@@ -52,26 +52,37 @@ using the applicant's existing session and permissions.
 
 ## Install
 
-Node.js 20.16 or newer is required.
+The easiest install paths are also available on the
+[Buffalo jobs board](https://buffaloprojects.com/jobs#buffalo-apply).
+
+### Claude Desktop
+
+Download the latest
+[Buffalo Apply MCP bundle](https://github.com/rhinehart514/buffalo-projects-tools/releases/latest/download/buffalo-apply.mcpb),
+then open Claude Desktop → Settings → Extensions → Advanced settings → Install
+Extension and choose the downloaded `.mcpb` file. The bundle contains its
+runtime dependencies and does not require a terminal command.
+
+Node.js 20.16 or newer is required for the command-based installs below.
 
 ### Claude Code
 
 ```bash
-claude mcp add --transport stdio --scope user buffalo -- \
-  npx -y github:rhinehart514/buffalo-projects-tools
+claude mcp add --scope user buffalo -- npx -y github:rhinehart514/buffalo-projects-tools
 ```
 
 Run `/mcp` and verify that `buffalo` connects.
 
 ### Codex
 
-```toml
-[mcp_servers.buffalo]
-command = "npx"
-args = ["-y", "github:rhinehart514/buffalo-projects-tools"]
+```bash
+codex mcp add buffalo -- npx -y github:rhinehart514/buffalo-projects-tools
 ```
 
-### Claude Desktop and other stdio MCP hosts
+The ChatGPT desktop app, Codex CLI, and Codex IDE extension share the same
+local MCP configuration. Restart the host after adding the server.
+
+### Other stdio MCP hosts
 
 ```json
 {
@@ -89,6 +100,10 @@ Verify a clean executable download:
 ```bash
 npx -y github:rhinehart514/buffalo-projects-tools --check
 ```
+
+ChatGPT web does not load local MCP configuration. OpenAI currently requires a
+hosted HTTPS plugin for ChatGPT web, which this local, resume-private release
+does not claim to provide.
 
 ## The 23 tools
 
@@ -184,12 +199,17 @@ cd buffalo-projects-tools
 corepack enable
 pnpm install
 pnpm check
+pnpm build:mcpb
 pnpm start
 ```
 
 `pnpm check` runs strict type checking, behavior and real parser/export tests,
 an in-memory 23-tool MCP protocol journey, a production build, and an executable
 health check.
+
+`pnpm build:mcpb` creates a validated, self-contained Claude Desktop bundle at
+`artifacts/buffalo-apply.mcpb` from the same compiled server used by the command
+installs.
 
 ## Scope
 

@@ -1,6 +1,6 @@
 {
   "name": "buffalo-projects-tools",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "module",
   "description": "Free MCP tools that turn one resume into evidence-backed applications for jobs from the Buffalo Projects index.",
   "keywords": [
@@ -40,6 +40,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "build:mcpb": "node scripts/build-mcpb.mjs",
     "check": "pnpm typecheck && pnpm test && pnpm build && pnpm smoke",
     "prepare": "tsup",
     "smoke": "node dist/index.js --check",
@@ -56,6 +57,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "2.1.2",
     "@types/node": "^24.10.0",
     "@types/pdfkit": "0.17.6",
     "tsup": "^8.5.1",

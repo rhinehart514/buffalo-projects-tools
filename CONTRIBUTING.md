@@ -25,7 +25,12 @@ Before opening a pull request:
 corepack enable
 pnpm install
 pnpm check
+pnpm build:mcpb
 ```
+
+Release changes must keep `package.json`, the MCP server version, and
+`mcpb/manifest.json` aligned. Validate and unpack-smoke-test the generated MCPB
+before attaching it to a release.
 
 Never commit application answers, personal data, credentials, captured form
 sessions, resumes, or invented job or program requirements.
