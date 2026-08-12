@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildCandidatePassport,
+  matchCandidateAnswers,
   prepareJobApplications,
+  rememberCandidateAnswers,
   reviewJobApplication,
 } from "../src/candidate.js";
 import type { LiveJob } from "../src/jobs.js";
@@ -101,6 +103,57 @@ test("asks once for missing material facts and never upgrades unconfirmed input"
   assert.equal(passport.readiness.status, "needs-confirmation");
   assert.ok(passport.readiness.missingQuestions.some((question) => question.id === "resume"));
   assert.ok(passport.claims.every((claim) => claim.source === "unverified-input"));
+});
+
+test("resume evidence requires one confirmation pass before application use", () => {
+  const passport = buildCandidatePassport({
+    candidate: {
+      fullName: "Resume Candidate",
+      email: "resume@example.com",
+      phone: "+1 716 555 0100",
+      resumePath: "/tmp/resume.pdf",
+      workAuthorized: "Yes",
+      needsSponsorship: "No",
+    },
+    candidateFactsSource: "resume-evidence",
+  });
+
+  assert.equal(passport.readiness.status, "needs-confirmation");
+  assert.ok(
+    passport.readiness.missingQuestions.some(
+      (question) => question.id === "confirm-resume-facts",
+    ),
+  );
+  assert.ok(passport.claims.every((claim) => claim.source === "resume-evidence"));
+});
+
+test("matches remembered answers only within their confirmed scope", () => {
+  const passport = rememberCandidateAnswers({
+    passport: confirmedPassport(),
+    answers: [
+      {
+        question: "Are you willing to relocate?",
+        answer: "Yes",
+        sensitivity: "material",
+        scope: "employer",
+        employer: "Example Buffalo Company",
+        confirmedByUser: true,
+      },
+    ],
+  });
+
+  assert.equal(
+    matchCandidateAnswers(passport, ["Are you willing to relocate?"], {
+      employer: "Example Buffalo Company",
+    })[0]?.status,
+    "remembered",
+  );
+  assert.equal(
+    matchCandidateAnswers(passport, ["Are you willing to relocate?"], {
+      employer: "Different Company",
+    })[0]?.status,
+    "needs-answer",
+  );
 });
 
 test("prepares one official browser handoff per selected Buffalo Projects job", () => {

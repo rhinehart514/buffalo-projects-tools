@@ -294,7 +294,7 @@ export async function resolveLiveJobs(
 ): Promise<LiveJob[]> {
   const ids = [...new Set(jobIds.map((id) => id.trim()).filter(Boolean))];
   if (ids.length === 0) throw new Error("Select at least one Buffalo Projects job.");
-  if (ids.length > 10) throw new Error("Select no more than 10 jobs at a time.");
+  if (ids.length > 50) throw new Error("Resolve no more than 50 jobs at a time.");
 
   const wanted = new Set(ids);
   const found = new Map<string, LiveJob>();

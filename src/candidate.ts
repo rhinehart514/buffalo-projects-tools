@@ -64,12 +64,28 @@ export interface CandidateClaim {
   sensitivity: "ordinary" | "personal" | "material" | "highly-sensitive";
 }
 
+export interface ReusableApplicationAnswer {
+  answerId: string;
+  question: string;
+  normalizedQuestion: string;
+  answer: string;
+  source: "user-confirmed";
+  sensitivity: "ordinary" | "personal" | "material";
+  scope: "all-jobs" | "employer" | "job";
+  employer?: string | undefined;
+  jobId?: string | undefined;
+  evidence?: string[] | undefined;
+  confirmedAt: string;
+}
+
 export interface CandidatePassport {
-  version: "buffalo-candidate-passport/v1";
+  version: "buffalo-candidate-passport/v2";
   passportId: string;
+  updatedAt: string;
   candidate: CandidateFacts;
   evidence: CandidateEvidence[];
   claims: CandidateClaim[];
+  applicationAnswers: ReusableApplicationAnswer[];
   readiness: {
     status: "ready" | "needs-confirmation" | "needs-shared-answers";
     missingQuestions: Array<{
@@ -80,13 +96,18 @@ export interface CandidatePassport {
     unverifiedClaimCount: number;
   };
   excludedFromPassport: string[];
-  portability: { persisted: false; note: string };
+  portability: {
+    persisted: boolean;
+    profileId?: string | undefined;
+    note: string;
+  };
 }
 
 export interface BuildCandidatePassportInput {
   candidate: CandidateFacts;
   evidence?: CandidateEvidence[] | undefined;
   supplementalClaims?: CandidateClaim[] | undefined;
+  candidateFactsSource?: "resume-evidence" | "unverified-input" | undefined;
   factsConfirmedByUser?: boolean | undefined;
 }
 
@@ -108,7 +129,7 @@ export function buildCandidatePassport(
 ): CandidatePassport {
   const source: FactSource = input.factsConfirmedByUser
     ? "user-confirmed"
-    : "unverified-input";
+    : (input.candidateFactsSource ?? "unverified-input");
   const claims: CandidateClaim[] = [];
   const push = (
     key: string,
@@ -245,12 +266,23 @@ export function buildCandidatePassport(
   }
 
   const missingQuestions = [
-    ...(!input.factsConfirmedByUser
+    ...(source === "unverified-input"
       ? [
           {
             id: "confirm-candidate-facts",
             prompt: "Please confirm or correct the candidate passport before it is used in applications.",
             reason: "The current facts have not been directly confirmed by the applicant.",
+          },
+        ]
+      : []),
+    ...(source === "resume-evidence"
+      ? [
+          {
+            id: "confirm-resume-facts",
+            prompt:
+              "Please confirm or correct the facts extracted from the resume before they are used in applications.",
+            reason:
+              "Resume text is evidence, but extraction and interpretation still require applicant confirmation once.",
           },
         ]
       : []),
@@ -276,16 +308,20 @@ export function buildCandidatePassport(
   const unverifiedClaimCount = claims.filter(
     (claim) => claim.source === "unverified-input" || claim.source === "generated-draft",
   ).length;
+  const requiresFactConfirmation =
+    source === "resume-evidence" || unverifiedClaimCount > 0;
 
   return {
-    version: "buffalo-candidate-passport/v1",
+    version: "buffalo-candidate-passport/v2",
     passportId: candidateId(input.candidate),
+    updatedAt: new Date().toISOString(),
     candidate: input.candidate,
     evidence: input.evidence ?? [],
     claims,
+    applicationAnswers: [],
     readiness: {
       status:
-        unverifiedClaimCount > 0
+        requiresFactConfirmation
           ? "needs-confirmation"
           : missingQuestions.length > 0
             ? "needs-shared-answers"
@@ -301,9 +337,118 @@ export function buildCandidatePassport(
     ],
     portability: {
       persisted: false,
-      note: "Portable JSON returned to the MCP host. This server does not save or transmit it.",
+      note:
+        "Portable JSON returned to the MCP host. Save it locally only through buffalo.save_candidate_passport after the applicant opts in.",
     },
   };
+}
+
+export interface RememberCandidateAnswersInput {
+  passport: CandidatePassport;
+  answers: Array<{
+    question: string;
+    answer: string;
+    sensitivity: ReusableApplicationAnswer["sensitivity"];
+    scope?: ReusableApplicationAnswer["scope"] | undefined;
+    employer?: string | undefined;
+    jobId?: string | undefined;
+    evidence?: string[] | undefined;
+    confirmedByUser?: boolean | undefined;
+  }>;
+}
+
+const prohibitedMemoryLabel =
+  /(?:social security|ssn|tax id|bank|routing|account number|password|credential|race|ethnicity|gender|disability|veteran|sexual orientation|self.identif)/iu;
+
+export function normalizeApplicationQuestion(question: string): string {
+  return question
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, " ")
+    .trim();
+}
+
+export function rememberCandidateAnswers(
+  input: RememberCandidateAnswersInput,
+): CandidatePassport {
+  const next = new Map(
+    input.passport.applicationAnswers.map((answer) => [
+      `${answer.scope}:${answer.employer ?? ""}:${answer.jobId ?? ""}:${answer.normalizedQuestion}`,
+      answer,
+    ]),
+  );
+  const confirmedAt = new Date().toISOString();
+
+  for (const answer of input.answers) {
+    if (!answer.confirmedByUser) {
+      throw new Error(
+        `Cannot remember an answer that the applicant did not confirm: ${answer.question}`,
+      );
+    }
+    if (prohibitedMemoryLabel.test(answer.question)) {
+      throw new Error(
+        `This answer is intentionally never stored in candidate memory: ${answer.question}`,
+      );
+    }
+    const question = answer.question.trim();
+    const value = answer.answer.trim();
+    if (!question || !value) throw new Error("Remembered questions and answers cannot be blank.");
+    const normalizedQuestion = normalizeApplicationQuestion(question);
+    const scope = answer.scope ?? "all-jobs";
+    if (scope === "employer" && !answer.employer?.trim()) {
+      throw new Error("Employer-scoped answers require an employer.");
+    }
+    if (scope === "job" && !answer.jobId?.trim()) {
+      throw new Error("Job-scoped answers require a job ID.");
+    }
+    const key = `${scope}:${answer.employer?.trim() ?? ""}:${answer.jobId?.trim() ?? ""}:${normalizedQuestion}`;
+    const answerId = `answer_${createHash("sha256").update(key).digest("hex").slice(0, 16)}`;
+    next.set(key, {
+      answerId,
+      question,
+      normalizedQuestion,
+      answer: value,
+      source: "user-confirmed",
+      sensitivity: answer.sensitivity,
+      scope,
+      ...(answer.employer?.trim() ? { employer: answer.employer.trim() } : {}),
+      ...(answer.jobId?.trim() ? { jobId: answer.jobId.trim() } : {}),
+      ...(answer.evidence?.length ? { evidence: compact(answer.evidence) } : {}),
+      confirmedAt,
+    });
+  }
+
+  return {
+    ...input.passport,
+    updatedAt: confirmedAt,
+    applicationAnswers: [...next.values()].sort((left, right) =>
+      left.normalizedQuestion.localeCompare(right.normalizedQuestion),
+    ),
+  };
+}
+
+export function matchCandidateAnswers(
+  passport: CandidatePassport,
+  questions: string[],
+  context: { employer?: string | undefined; jobId?: string | undefined } = {},
+) {
+  return questions.map((question) => {
+    const normalized = normalizeApplicationQuestion(question);
+    const candidates = passport.applicationAnswers.filter(
+      (answer) =>
+        answer.normalizedQuestion === normalized &&
+        (answer.scope === "all-jobs" ||
+          (answer.scope === "employer" && answer.employer === context.employer) ||
+          (answer.scope === "job" && answer.jobId === context.jobId)),
+    );
+    const match = candidates.sort((left, right) => {
+      const score = (scope: ReusableApplicationAnswer["scope"]) =>
+        scope === "job" ? 3 : scope === "employer" ? 2 : 1;
+      return score(right.scope) - score(left.scope);
+    })[0];
+    return match
+      ? { question, status: "remembered" as const, answer: match }
+      : { question, status: "needs-answer" as const, answer: null };
+  });
 }
 
 export interface PrepareJobApplicationsInput {
@@ -324,6 +469,15 @@ export function prepareJobApplications(input: PrepareJobApplicationsInput) {
   const jobs = input.jobs.filter(
     (job, index, all) => all.findIndex((candidate) => candidate.id === job.id) === index,
   );
+  const resumeAvailable = Boolean(
+    input.passport.candidate.resumePath?.trim() ||
+      input.passport.candidate.resumeUrl?.trim() ||
+      input.passport.evidence.some(
+        (evidence) =>
+          evidence.kind === "resume" &&
+          Boolean(evidence.localPath?.trim() || evidence.url?.trim()),
+      ),
+  );
 
   return {
     version: "buffalo-job-application-set/v1",
@@ -332,6 +486,16 @@ export function prepareJobApplications(input: PrepareJobApplicationsInput) {
       id: input.passport.passportId,
       status: input.passport.readiness.status,
     },
+    resume: resumeAvailable
+      ? {
+          status: "available" as const,
+          instruction: "Use the applicant-approved resume file or URL in the passport.",
+        }
+      : {
+          status: "needed" as const,
+          instruction:
+            "Ask the applicant to upload or select a resume, call buffalo.import_resume, confirm the extracted facts once, and rebuild the passport before filling applications.",
+        },
     sharedQuestionPass: {
       knownMissing: input.passport.readiness.missingQuestions,
       instruction:
@@ -352,6 +516,7 @@ export function prepareJobApplications(input: PrepareJobApplicationsInput) {
           ? "needs-candidate-confirmation"
           : "ready-to-inspect",
       reusableClaims: input.passport.claims,
+      reusableApplicationAnswers: input.passport.applicationAnswers,
       tailoringTask:
         "Draft job-specific prose only from candidate-confirmed facts, cited evidence, and the live job description. Label generated prose as a draft until the candidate approves it.",
       browserHandoff: {
@@ -365,6 +530,8 @@ export function prepareJobApplications(input: PrepareJobApplicationsInput) {
           "Never invent qualifications, employment dates, education, salary history, work authorization, sponsorship status, references, or demographic answers.",
           "Do not infer or auto-answer voluntary race, ethnicity, gender, disability, or veteran self-identification questions. Leave them unanswered or hand them to the candidate.",
           "Do not type claims labeled unverified-input or generated-draft until the candidate confirms them.",
+          "Reuse saved application answers only when the normalized question and all employer/job scope restrictions match. Otherwise ask once across the selected forms.",
+          "If the resume is not accessible to the host, stop once and ask the applicant to upload or select it; do not ask them to retype resume content.",
           "Do not bypass CAPTCHA, login, identity verification, assessment, signature, or other candidate-only controls.",
           "After filling, call buffalo.review_job_application and show the candidate the exact destination, answers, disclosures, and certifications.",
           "Ask for explicit point-of-action approval for this specific employer and role immediately before final submit.",

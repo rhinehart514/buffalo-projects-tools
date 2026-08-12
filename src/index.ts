@@ -10,7 +10,9 @@ export { searchOpportunities } from "./matcher.js";
 export { prepareRegistration, reviewSubmission } from "./registration.js";
 export {
   buildCandidatePassport,
+  matchCandidateAnswers,
   prepareJobApplications,
+  rememberCandidateAnswers,
   reviewJobApplication,
 } from "./candidate.js";
 export {
@@ -19,6 +21,22 @@ export {
   resolveLiveJobs,
   searchLiveJobs,
 } from "./jobs.js";
+export { importResume } from "./resume.js";
+export { rankJobs } from "./ranking.js";
+export {
+  prepareApplicationMaterials,
+  reviewApplicationMaterials,
+} from "./materials.js";
+export { exportApprovedMaterials } from "./export-materials.js";
+export { runJobScout } from "./scout.js";
+export {
+  getApplicationLedger,
+  listCandidateProfiles,
+  loadCandidateProfile,
+  recordApplicationProgress,
+  saveCandidateProfile,
+  saveJobScout,
+} from "./storage.js";
 
 export async function runStdioServer(): Promise<void> {
   const server = createBuffaloServer();
@@ -46,7 +64,7 @@ if (invokedAsBin()) {
         accountRequired: false,
         catalogEntries: opportunities.length,
         liveJobSource: "https://buffaloprojects.com/api/jobs",
-        tools: 8,
+        tools: 23,
       })}\n`,
     );
   } else if (process.argv.includes("--version")) {

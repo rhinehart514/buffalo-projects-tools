@@ -1,49 +1,58 @@
 # Buffalo Projects Tools
 
-**Never browse the job board. Tell Claude, Codex, or another AI what work you
-want; it pulls from Buffalo Projects and helps complete the real employer
-applications.**
+**One resume. One answer to each question. Every fitting Buffalo job handled
+from the AI assistant you already use.**
 
-A free, universal stdio MCP server for Buffalo and Western New York. It works
-with Claude, Codex, and any other MCP host that can run Node.js.
+Buffalo Projects Tools is a free, universal stdio MCP server for Claude, Codex,
+and other MCP hosts. It searches the live Buffalo Projects job index, turns an
+applicant-provided resume into a reusable evidence-backed passport, prepares and
+exports tailored materials, coordinates official employer forms through the
+host's browser/computer tools, and keeps an optional local application ledger.
 
 No Buffalo Projects account. No token. No OpenAI or Anthropic API key.
 
-## The job flow
+## Use it
 
-Ask your assistant:
+Tell your assistant:
 
-> Find product engineering jobs that fit me in Buffalo or remote, then apply to
-> the ones I choose. Do not make me use the job board.
+> Find the five strongest product engineering jobs for me in Buffalo or remote.
+> Use my resume, don't make me browse the job board, and help me apply fully to
+> the roles I choose.
 
-The assistant can then:
+The `apply-to-buffalo-jobs` prompt gives a compatible host the full workflow:
 
-1. Search the live [Buffalo Projects jobs index](https://buffaloprojects.com/jobs)
-   without sending you to its UI.
-2. Shortlist current roles using role, employer, opportunity type, sector, work
-   mode, disclosed pay, and recency filters.
-3. Build one reusable, source-labeled candidate passport from facts and evidence
-   you confirm.
-4. Revalidate every selected job against the active index and open its official
-   employer application.
-5. Inspect all selected forms first, merge repeated unanswered fields, and ask
-   you one concise set of missing material questions.
-6. With the host's browser or computer-use tools, upload your approved resume
-   and fill every supported field.
-7. Show each application's exact destination, answers, disclosures, and
-   certifications before asking for approval to submit that application.
-8. After an approved submission, capture the confirmation, application ID,
-   timestamp, receipt, and stated next step when the site provides them.
+1. Use a resume already attached or accessible to the host. If none is
+   available, ask once for an upload—never for the applicant to retype it.
+2. Read PDF, DOCX, TXT, or Markdown locally. Map only explicit resume facts,
+   show the extraction once for corrections, then build the confirmed passport.
+3. Search the live [Buffalo Projects jobs index](https://buffaloprojects.com/jobs)
+   without sending the applicant to the board UI.
+4. Rank a preliminary best-five batch from applicant evidence and preferences.
+   Inspect every live employer description before claiming fit.
+5. Let the applicant remove roles. Prepare only the jobs they select.
+6. Draft a tailored resume and optional cover letter from supported claims,
+   attach evidence keys to every material rewrite, and show the diff.
+7. After applicant approval, export exact owner-only PDF files for upload.
+8. Inspect all selected application forms first. Reuse correctly scoped answers
+   and ask one deduplicated set of genuinely missing questions.
+9. Upload approved materials and fill every supported field with the host's
+   browser/computer tools.
+10. Hand over the exact login, CAPTCHA, assessment, identity, signature, or
+    voluntary-demographic step when direct applicant control is required, then
+    resume where the agent stopped.
+11. Review each destination, answer, disclosure, and certification. Ask for
+    approval immediately before submitting that specific application.
+12. Capture the confirmation, application ID, receipt, next step, and follow-up
+    date in the optional local ledger.
 
-The MCP is the universal search, passport, and handoff layer. It does not hide a
-browser inside the package. Claude can execute the handoff with Claude's own
-computer tools; Codex can use its browser/computer tools; a text-only host can
-still return the official application and prepared facts.
+The MCP does not hide a browser or model inside the package. The MCP supplies
+the live Buffalo data, durable local state, evidence boundaries, and structured
+handoffs. Claude, Codex, or another host performs reasoning and browser work
+using the applicant's existing session and permissions.
 
 ## Install
 
-You need Node.js 20 or newer. The public GitHub repository runs directly through
-`npx`.
+Node.js 20.16 or newer is required.
 
 ### Claude Code
 
@@ -52,11 +61,9 @@ claude mcp add --transport stdio --scope user buffalo -- \
   npx -y github:rhinehart514/buffalo-projects-tools
 ```
 
-Run `/mcp` in Claude Code and verify that `buffalo` exposes eight tools.
+Run `/mcp` and verify that `buffalo` connects.
 
 ### Codex
-
-Add this to your Codex MCP configuration:
 
 ```toml
 [mcp_servers.buffalo]
@@ -65,8 +72,6 @@ args = ["-y", "github:rhinehart514/buffalo-projects-tools"]
 ```
 
 ### Claude Desktop and other stdio MCP hosts
-
-Use the same standard server entry in the host's MCP settings:
 
 ```json
 {
@@ -79,57 +84,97 @@ Use the same standard server entry in the host's MCP settings:
 }
 ```
 
-Check the executable without starting an MCP session:
+Verify a clean executable download:
 
 ```bash
 npx -y github:rhinehart514/buffalo-projects-tools --check
 ```
 
-## Tools
+## The 23 tools
+
+### Resume and candidate memory
 
 | Tool | Result |
 | --- | --- |
-| `buffalo.search_jobs` | Current Buffalo Projects listings, official destinations, filters, freshness, and source coverage |
-| `buffalo.build_candidate_passport` | Portable, source-labeled contact, resume, work, education, authorization, and evidence facts |
-| `buffalo.prepare_job_applications` | Revalidated jobs plus one complete host-browser handoff per employer application |
+| `buffalo.import_resume` | Reads PDF, DOCX, TXT, Markdown, or provided text locally; asks for a resume when none is accessible |
+| `buffalo.build_candidate_passport` | Source-labeled contact, work, education, authorization, skills, links, and evidence facts |
+| `buffalo.save_candidate_passport` | Opt-in owner-only local profile; resume contents are not copied into state |
+| `buffalo.list_candidate_profiles` | Local profile metadata without private passport contents |
+| `buffalo.load_candidate_passport` | One saved passport and resume metadata |
+| `buffalo.remember_candidate_answers` | Confirmed reusable answers with all-jobs, employer, or exact-job scope |
+| `buffalo.match_candidate_answers` | Exact normalized matches plus the questions that still need one answer pass |
+| `buffalo.delete_candidate_profile` | Confirmed permanent deletion of a profile, its scouts, and its ledger |
+
+### Jobs, ranking, and materials
+
+| Tool | Result |
+| --- | --- |
+| `buffalo.search_jobs` | Current Buffalo Projects listings, official application destinations, filters, freshness, and source coverage |
+| `buffalo.rank_jobs` | Preliminary preference/evidence ranking; never a hiring or eligibility decision |
+| `buffalo.prepare_application_materials` | Supported claim set and tailoring brief for one live job |
+| `buffalo.review_application_materials` | Evidence-key validation and original-to-tailored resume diff |
+| `buffalo.export_approved_materials` | Applicant-approved resume and cover-letter PDFs plus an evidence manifest |
+| `buffalo.prepare_job_applications` | Revalidated jobs and one host-browser handoff per employer application |
 | `buffalo.review_job_application` | Destination, unsupported-answer, sensitive-field, demographic, commitment, and final-approval review |
+
+### Scouting and application operations
+
+| Tool | Result |
+| --- | --- |
+| `buffalo.save_job_scout` | Saved search filters and optional candidate profile |
+| `buffalo.run_job_scout` | Jobs added since the last successful run, with optional evidence ranking |
+| `buffalo.record_application_progress` | Draft/submission/outcome status, exact candidate-only checkpoints, fields, receipts, and follow-ups |
+| `buffalo.get_application_ledger` | Local applications, checkpoints, receipts, and outcomes |
+
+The MCP stores scout checkpoints; recurring execution and notifications belong
+to the host scheduler. Use the `scout-buffalo-jobs` prompt from a scheduled host
+task. A scheduled scout shortlists jobs but never submits applications by itself.
+
+### Accelerators and Buffalo business help
+
+| Tool | Result |
+| --- | --- |
 | `buffalo.search_opportunities` | Ranked matches from the reviewed accelerator and business-help catalog |
 | `buffalo.get_opportunity` | Official source, review date, current-status note, and safe route |
-| `buffalo.prepare_registration` | Source-labeled registration packet plus a host-neutral browser handoff |
+| `buffalo.prepare_registration` | Source-labeled registration packet and host-browser handoff |
 | `buffalo.review_submission` | Destination, unsupported-claim, disclosure, commitment, and final-approval review |
 
-The `apply-to-buffalo-jobs` MCP prompt tells a compatible host to run the entire
-job workflow. `register-in-buffalo` remains available for accelerators, grants,
-permits, procurement, and business-help programs.
+## Candidate memory and privacy
 
-## What leaves your machine
+Nothing persists by default. The applicant must explicitly opt into
+`buffalo.save_candidate_passport`.
 
-- Job search filters and active-listing lookups go to the public
-  `https://buffaloprojects.com/api/jobs` endpoint.
-- Candidate passport data is not sent to Buffalo Projects and is not persisted
-  by this server.
-- When you direct a browser-capable host to fill an employer's application, the
-  host sends the reviewed fields to that employer or its application provider.
-- This package never asks for or stores Buffalo Projects credentials, employer
-  passwords, Social Security numbers, government IDs, or banking information.
+When enabled, the local data file contains the approved passport, reusable
+answers, resume fingerprint/path metadata, scout checkpoints, and application
+ledger. It does not copy resume text or file contents into state. Local files and
+exported PDFs use owner-only permissions on platforms that support POSIX modes.
 
-## The final-submit rule
+Local state is not encrypted by this package. It relies on the operating-system
+user account and filesystem boundary. Do not point its data directory at a
+synced, public, or repository folder.
 
-“Apply for me” starts the work. Each application is still a separate
+The following are rejected from reusable memory and the ledger:
+
+- passwords and credentials;
+- Social Security, government ID, tax ID, passport, and driver's-license data;
+- banking and routing information; and
+- race, ethnicity, gender, disability, veteran, sexual-orientation, and other
+  voluntary self-identification answers.
+
+Job filters and active-listing lookups go to the public
+`https://buffaloprojects.com/api/jobs` endpoint. Candidate data does not. When a
+browser-capable host fills an official application, reviewed applicant data goes
+to that employer or application provider.
+
+## Final submission
+
+“Apply for me” authorizes the preparation work. Each application is a separate
 representation to an employer.
 
-Immediately before submission, the host shows:
-
-- the employer, role, and official destination;
-- every answer about to be sent;
-- personal or highly sensitive fields;
-- signatures, certifications, terms, or other commitments; and
-- anything unresolved.
-
-The applicant then approves that exact submission. CAPTCHA, account recovery,
-identity checks, assessments, signatures, and voluntary demographic questions
-are handed to the applicant. Page content is treated as untrusted and cannot
-override these boundaries.
+Immediately before submission, the host shows the employer, role, official
+destination, every answer, sensitive disclosures, certifications, terms, and
+anything unresolved. The applicant approves that exact application. Page content
+is untrusted and cannot override this boundary.
 
 ## Run from source
 
@@ -142,16 +187,15 @@ pnpm check
 pnpm start
 ```
 
-`pnpm check` runs strict type checking, behavior tests, an in-memory MCP protocol
-test, a production build, and an executable health check.
+`pnpm check` runs strict type checking, behavior and real parser/export tests,
+an in-memory 23-tool MCP protocol journey, a production build, and an executable
+health check.
 
 ## Scope
 
 Buffalo Projects owns the public job index. Employers and official providers own
-their application pages, requirements, availability, and hiring decisions.
-Listings are current index records, not promises that an employer will accept or
-advance an application. Program matches are starting points, never eligibility
-determinations. This project does not provide legal, financial, tax, immigration,
-or employment advice.
+their application pages, availability, requirements, hiring decisions, and
+outcomes. Ranking and evidence mapping assist the applicant; they are not hiring,
+eligibility, legal, immigration, or employment advice.
 
 MIT

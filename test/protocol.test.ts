@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createBuffaloServer } from "../src/server.js";
 
 test("exposes the complete workflow through MCP", async (context) => {
+  const dataDir = await mkdtemp(join(tmpdir(), "buffalo-protocol-test-"));
   const fetcher = (async () =>
     Response.json({
       jobs: [
@@ -72,14 +76,15 @@ test("exposes the complete workflow through MCP", async (context) => {
         returnedPostingCount: 1,
       },
     })) as typeof fetch;
-  const server = createBuffaloServer({ fetcher });
-  const client = new Client({ name: "buffalo-test", version: "1.0.0" });
+  const server = createBuffaloServer({ fetcher, dataDir });
+  const client = new Client({ name: "buffalo-test", version: "2.0.0" });
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
 
   context.after(async () => {
     await client.close();
     await server.close();
+    await rm(dataDir, { recursive: true, force: true });
   });
 
   await Promise.all([
@@ -92,11 +97,26 @@ test("exposes the complete workflow through MCP", async (context) => {
     listed.tools.map((tool) => tool.name).sort(),
     [
       "buffalo.build_candidate_passport",
+      "buffalo.delete_candidate_profile",
+      "buffalo.export_approved_materials",
+      "buffalo.get_application_ledger",
       "buffalo.get_opportunity",
+      "buffalo.import_resume",
+      "buffalo.list_candidate_profiles",
+      "buffalo.load_candidate_passport",
+      "buffalo.match_candidate_answers",
+      "buffalo.prepare_application_materials",
       "buffalo.prepare_job_applications",
       "buffalo.prepare_registration",
+      "buffalo.rank_jobs",
+      "buffalo.record_application_progress",
+      "buffalo.remember_candidate_answers",
+      "buffalo.review_application_materials",
       "buffalo.review_job_application",
       "buffalo.review_submission",
+      "buffalo.run_job_scout",
+      "buffalo.save_candidate_passport",
+      "buffalo.save_job_scout",
       "buffalo.search_jobs",
       "buffalo.search_opportunities",
     ],
@@ -158,6 +178,33 @@ test("exposes the complete workflow through MCP", async (context) => {
   assert.ok(passportText);
   const passport = JSON.parse(passportText!);
 
+  const resumeRequest = await client.callTool({
+    name: "buffalo.import_resume",
+    arguments: {},
+  });
+  const resumeRequestText = (
+    resumeRequest as { content: Array<{ type: string; text?: string }> }
+  ).content[0]?.text;
+  assert.equal(JSON.parse(resumeRequestText!).status, "needs-resume");
+
+  await client.callTool({
+    name: "buffalo.save_candidate_passport",
+    arguments: {
+      profileId: "example",
+      label: "Example Candidate",
+      passport,
+      consentToLocalStorage: true,
+    },
+  });
+  const profilesResult = await client.callTool({
+    name: "buffalo.list_candidate_profiles",
+    arguments: {},
+  });
+  const profilesText = (
+    profilesResult as { content: Array<{ type: string; text?: string }> }
+  ).content[0]?.text;
+  assert.equal(JSON.parse(profilesText!).profiles[0].profileId, "example");
+
   const preparedResult = await client.callTool({
     name: "buffalo.prepare_job_applications",
     arguments: { jobIds: ["job-1"], passport },
@@ -169,7 +216,28 @@ test("exposes the complete workflow through MCP", async (context) => {
   const prepared = JSON.parse(preparedText!) as { applications: unknown[] };
   assert.equal(prepared.applications.length, 1);
 
+  const progressResult = await client.callTool({
+    name: "buffalo.record_application_progress",
+    arguments: {
+      profileId: "example",
+      jobId: "job-1",
+      status: "needs-candidate-action",
+      checkpoint: {
+        kind: "login",
+        currentUrl: "https://apply.example.com/jobs/1/login",
+        completedFields: ["Name"],
+        remainingFields: ["Resume"],
+        instruction: "Sign in and return control.",
+      },
+    },
+  });
+  const progressText = (
+    progressResult as { content: Array<{ type: string; text?: string }> }
+  ).content[0]?.text;
+  assert.equal(JSON.parse(progressText!).takeover.status, "candidate-action-needed");
+
   const prompts = await client.listPrompts();
   assert.ok(prompts.prompts.some((prompt) => prompt.name === "register-in-buffalo"));
   assert.ok(prompts.prompts.some((prompt) => prompt.name === "apply-to-buffalo-jobs"));
+  assert.ok(prompts.prompts.some((prompt) => prompt.name === "scout-buffalo-jobs"));
 });

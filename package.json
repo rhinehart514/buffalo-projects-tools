@@ -1,8 +1,8 @@
 {
   "name": "buffalo-projects-tools",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Free MCP tools that let any AI search Buffalo Projects jobs and prepare job or opportunity applications.",
+  "description": "Free MCP tools that turn one resume into evidence-backed applications for jobs from the Buffalo Projects index.",
   "keywords": [
     "buffalo",
     "western-new-york",
@@ -12,6 +12,8 @@
     "codex",
     "jobs",
     "careers",
+    "resume",
+    "auto-apply",
     "accelerators"
   ],
   "bin": {
@@ -24,7 +26,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.16.0"
   },
   "packageManager": "pnpm@10.33.4",
   "pnpm": {
@@ -47,10 +49,15 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "jszip": "3.10.1",
+    "mammoth": "1.12.1",
+    "pdf-parse": "2.4.5",
+    "pdfkit": "0.19.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "@types/pdfkit": "0.17.6",
     "tsup": "^8.5.1",
     "tsx": "^4.23.0",
     "typescript": "^5.9.3"

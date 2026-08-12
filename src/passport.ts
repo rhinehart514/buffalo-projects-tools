@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 export const factSources = [
   "user-confirmed",
+  "resume-evidence",
   "project-evidence",
   "generated-draft",
   "unverified-input",
