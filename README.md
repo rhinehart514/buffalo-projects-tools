@@ -28,7 +28,9 @@ The `apply-to-buffalo-jobs` prompt gives a compatible host the full workflow:
 3. Search the live [Buffalo Projects jobs index](https://buffaloprojects.com/jobs)
    without sending the applicant to the board UI.
 4. Rank a preliminary best-five batch from applicant evidence and preferences.
-   Inspect every live employer description before claiming fit.
+   Inspect every live employer description before claiming fit. Every "why you
+   match" claim quotes both the resume or passport and the job text; code checks
+   both quotes exist, and claims that fail are dropped and counted, never shown.
 5. Let the applicant remove roles. Prepare only the jobs they select.
 6. Draft a tailored resume and optional cover letter from supported claims,
    attach evidence keys to every material rewrite, and show the diff.
@@ -105,7 +107,7 @@ ChatGPT web does not load local MCP configuration. OpenAI currently requires a
 hosted HTTPS plugin for ChatGPT web, which this local, resume-private release
 does not claim to provide.
 
-## The 23 tools
+## The 24 tools
 
 ### Resume and candidate memory
 
@@ -125,9 +127,10 @@ does not claim to provide.
 | Tool | Result |
 | --- | --- |
 | `buffalo.search_jobs` | Current Buffalo Projects listings, official application destinations, filters, freshness, and source coverage |
-| `buffalo.rank_jobs` | Preliminary preference/evidence ranking; never a hiring or eligibility decision |
+| `buffalo.rank_jobs` | Preliminary preference/evidence ranking with quoted passport-to-listing matches; never a hiring or eligibility decision |
+| `buffalo.verify_job_fit` | Keeps only fit claims whose resume/passport quote and job-description quote both exist; drops and counts the rest, locally |
 | `buffalo.prepare_application_materials` | Supported claim set and tailoring brief for one live job |
-| `buffalo.review_application_materials` | Evidence-key validation and original-to-tailored resume diff |
+| `buffalo.review_application_materials` | Evidence-key and quote validation, verified evidence map, and original-to-tailored resume diff |
 | `buffalo.export_approved_materials` | Applicant-approved resume and cover-letter PDFs plus an evidence manifest |
 | `buffalo.prepare_job_applications` | Revalidated jobs and one host-browser handoff per employer application |
 | `buffalo.review_job_application` | Destination, unsupported-answer, sensitive-field, demographic, commitment, and final-approval review |
@@ -149,8 +152,15 @@ task. A scheduled scout shortlists jobs but never submits applications by itself
 
 | Tool | Result |
 | --- | --- |
-| `buffalo.search_opportunities` | Ranked matches from the reviewed accelerator and business-help catalog |
-| `buffalo.get_opportunity` | Official source, review date, current-status note, and safe route |
+| `buffalo.search_opportunities` | Ranked matches from the reviewed catalog, each with its last-verified date, quoted official-page evidence, and drift |
+| `buffalo.get_opportunity` | Official source, review date, status, deadline, verification evidence, and safe route |
+
+The catalog is checked against each official page with `pnpm catalog:verify`.
+It fetches every official and registration URL, finds status, deadline, and
+cohort-date statements, keeps only findings whose quoted text is on the page and
+states the value, and writes `src/catalog-verification.json`. The server ships
+that report. The command exits non-zero when any entry drifted (dead link,
+access denied, closed, changed deadline, and similar).
 | `buffalo.prepare_registration` | Source-labeled registration packet and host-browser handoff |
 | `buffalo.review_submission` | Destination, unsupported-claim, disclosure, commitment, and final-approval review |
 
@@ -204,7 +214,7 @@ pnpm start
 ```
 
 `pnpm check` runs strict type checking, behavior and real parser/export tests,
-an in-memory 23-tool MCP protocol journey, a production build, and an executable
+an in-memory 24-tool MCP protocol journey, a production build, and an executable
 health check.
 
 `pnpm build:mcpb` creates a validated, self-contained Claude Desktop bundle at

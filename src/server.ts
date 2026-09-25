@@ -14,7 +14,9 @@ import {
   opportunityKinds,
   projectStages,
 } from "./catalog.js";
+import { catalogVerification, verificationFor } from "./catalog-evidence.js";
 import { exportApprovedMaterials } from "./export-materials.js";
+import { verifyJobFit } from "./fit.js";
 import {
   jobOpportunityKinds,
   jobSectors,
@@ -355,14 +357,54 @@ const prepareApplicationMaterialsInputSchema = z.object({
   resume: resumeEvidenceSchema.nullable().optional(),
 });
 
+const candidateQuoteSchema = z
+  .string()
+  .min(1)
+  .max(2_000)
+  .describe("Exact text copied from the candidate's resume or passport. Code checks it exists.");
+const jobQuoteSchema = z
+  .string()
+  .min(1)
+  .max(2_000)
+  .describe("Exact text copied from the live job description. Code checks it exists.");
+const jobDescriptionTextSchema = z
+  .string()
+  .min(1)
+  .max(100_000)
+  .describe("The live employer job description text the host read. Stays on this machine.");
+
 const proposedMaterialClaimSchema = z.object({
   text: z.string().min(1),
   evidenceKeys: z.array(z.string()).max(20),
+  candidateQuote: candidateQuoteSchema,
+  jobQuote: jobQuoteSchema,
 });
+
+const verifyJobFitInputSchema = z
+  .object({
+    jobId: z.string().min(1),
+    jobDescriptionText: jobDescriptionTextSchema,
+    resumeText: z.string().max(250_000).optional(),
+    passport: candidatePassportSchema.optional(),
+    matches: z
+      .array(
+        z.object({
+          claim: z.string().min(1).max(1_000),
+          candidateQuote: candidateQuoteSchema,
+          jobQuote: jobQuoteSchema,
+        }),
+      )
+      .min(1)
+      .max(50),
+  })
+  .refine((value) => Boolean(value.resumeText?.trim() || value.passport), {
+    message: "Provide resumeText, passport, or both.",
+  });
 
 const reviewApplicationMaterialsInputSchema = z.object({
   passport: candidatePassportSchema,
   jobId: z.string().min(1),
+  jobDescriptionText: jobDescriptionTextSchema,
   originalResumeText: z.string().max(250_000),
   tailoredResumeText: z.string().max(250_000),
   coverLetter: z.string().max(50_000).optional(),
@@ -372,6 +414,7 @@ const reviewApplicationMaterialsInputSchema = z.object({
 const exportApprovedMaterialsInputSchema = z.object({
   profileId: z.string().min(1).max(100),
   jobId: z.string().min(1),
+  jobDescriptionText: jobDescriptionTextSchema,
   originalResumeText: z.string().max(250_000),
   tailoredResumeText: z.string().min(1).max(250_000),
   coverLetter: z.string().max(50_000).optional(),
@@ -460,8 +503,9 @@ export const toolHandlers = {
   search: (input: z.infer<typeof searchInputSchema>) => ({
     scope: "Buffalo and Western New York, plus reviewed New York State starting points",
     catalogReviewedThrough: opportunities.map((item) => item.reviewedAt).sort().at(-1),
+    catalogCheckedAt: catalogVerification.generatedAt,
     notice:
-      "Matches are plausible starting points, not eligibility decisions. Verify current requirements and deadlines on each official site.",
+      "Matches are plausible starting points, not eligibility decisions. verification.evidence quotes the official page text that code found for a status or deadline; an empty list means the page states neither. lastVerified is the last day the official page loaded and contradicted nothing in the catalog. Treat drift and never-verified entries as unconfirmed and check the official site.",
     matches: searchOpportunities(input).map((match) => ({
       id: match.opportunity.id,
       name: match.opportunity.name,
@@ -472,6 +516,7 @@ export const toolHandlers = {
       registrationMode: match.opportunity.registration.mode,
       officialUrl: match.opportunity.officialUrl,
       reviewedAt: match.opportunity.reviewedAt,
+      verification: verificationFor(match.opportunity),
       reasons: match.reasons,
       caution: match.opportunity.caution,
     })),
@@ -479,7 +524,7 @@ export const toolHandlers = {
   get: (input: z.infer<typeof getInputSchema>) => {
     const opportunity = getOpportunity(input.opportunityId);
     if (!opportunity) throw new Error(`Unknown opportunity: ${input.opportunityId}`);
-    return opportunity;
+    return { ...opportunity, verification: verificationFor(opportunity) };
   },
   prepare: (input: z.infer<typeof prepareInputSchema>) => prepareRegistration(input),
   review: (input: z.infer<typeof reviewInputSchema>) => reviewSubmission(input),
@@ -527,6 +572,7 @@ const serverInstructions = [
   "Import the resume, map explicit facts as resume-evidence, show the extraction once for corrections, then build the confirmed candidate passport.",
   "Candidate passport data is not sent to Buffalo Projects. Nothing persists unless the applicant explicitly opts into buffalo.save_candidate_passport; local memory rejects credentials, government IDs, banking data, and voluntary demographic answers.",
   "Search, rank a preliminary shortlist, inspect live descriptions, and let the applicant choose. Prepare no more than the selected applications.",
+  "Every fit claim quotes the resume or passport and the live job description; call buffalo.verify_job_fit and show only verified matches.",
   "Inspect every selected employer application before asking one deduplicated set of missing questions. Fill complete drafts from confirmed facts and evidence only.",
   "Tailored resumes and cover letters require an evidence map and buffalo.review_application_materials before upload.",
   "Never invent qualifications or answers. Never auto-answer voluntary demographic questions. Never bypass CAPTCHA, identity checks, assessments, signatures, or authentication.",
@@ -740,6 +786,29 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
   );
 
   server.registerTool(
+    "buffalo.verify_job_fit",
+    {
+      title: "Verify why a candidate fits a job",
+      description:
+        "Check proposed fit claims before showing them. Each claim must quote the candidate's resume or passport and the live job description; code confirms both quotes exist locally and drops and counts the rest. Nothing is sent off this machine.",
+      inputSchema: verifyJobFitInputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async (input) => {
+      const [job] = await resolveWithCache([input.jobId], jobCache, fetcher);
+      return jsonResult(
+        verifyJobFit({
+          job: job!,
+          jobDescriptionText: input.jobDescriptionText,
+          ...(input.resumeText ? { resumeText: input.resumeText } : {}),
+          ...(input.passport ? { passport: input.passport as CandidatePassport } : {}),
+          matches: input.matches,
+        }),
+      );
+    },
+  );
+
+  server.registerTool(
     "buffalo.prepare_application_materials",
     {
       title: "Prepare evidence-aware application materials",
@@ -765,7 +834,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
     {
       title: "Review tailored resume and cover letter",
       description:
-        "Compare original and tailored resume text, validate each proposed claim's passport evidence keys, block unconfirmed or missing evidence, and return the applicant-review prompt.",
+        "Compare original and tailored resume text, validate each proposed claim's passport evidence keys, check that its candidateQuote is in the resume or cited claims and its jobQuote is in the live job description, drop and count claims that fail, block unconfirmed or missing evidence, and return the applicant-review prompt.",
       inputSchema: reviewApplicationMaterialsInputSchema,
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -775,6 +844,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
         reviewApplicationMaterials({
           passport: input.passport as CandidatePassport,
           job: job!,
+          jobDescriptionText: input.jobDescriptionText,
           originalResumeText: input.originalResumeText,
           tailoredResumeText: input.tailoredResumeText,
           ...(input.coverLetter ? { coverLetter: input.coverLetter } : {}),
@@ -800,6 +870,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
           {
             profileId: input.profileId,
             job: job!,
+            jobDescriptionText: input.jobDescriptionText,
             originalResumeText: input.originalResumeText,
             tailoredResumeText: input.tailoredResumeText,
             ...(input.coverLetter ? { coverLetter: input.coverLetter } : {}),
@@ -980,7 +1051,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
     {
       title: "Find Buffalo opportunities",
       description:
-        "Match a project against a reviewed catalog of official Buffalo, WNY, and relevant NYS accelerators, capital, grants, permits, procurement, and business-help starting points. Returns plausible matches, never eligibility claims.",
+        "Match a project against a reviewed catalog of official Buffalo, WNY, and relevant NYS accelerators, capital, grants, permits, procurement, and business-help starting points. Returns plausible matches with last-verified dates and quoted official-page evidence, never eligibility claims.",
       inputSchema: searchInputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -992,7 +1063,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
     {
       title: "Inspect a Buffalo opportunity",
       description:
-        "Return the reviewed official source, current-status note, registration route, browser allowlist, and caution for one catalog entry.",
+        "Return the reviewed official source, current-status note, quoted verification evidence and drift, registration route, browser allowlist, and caution for one catalog entry.",
       inputSchema: getInputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -1045,8 +1116,8 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
               preferences ? `Preferences: ${preferences}` : "Preferences: Buffalo/WNY roles and fitting remote work.",
               "First check whether a readable resume is already attached or accessible. If yes, call buffalo.import_resume with its local path or extracted text. If no, call buffalo.import_resume with no arguments and ask me once to upload/select it; never make me retype it.",
               "Map only explicit resume facts with candidateFactsSource=resume-evidence. Show me the extracted passport once for corrections, then rebuild it with factsConfirmedByUser=true. Load existing local candidate memory first when I have opted into it.",
-              "Use buffalo.search_jobs; do not make me browse the Buffalo Projects job board. Use buffalo.rank_jobs for a preliminary best-five shortlist, inspect each live description, explain evidence and gaps, and let me remove roles.",
-              "For each selected role, use buffalo.prepare_application_materials. Draft a tailored resume and cover letter only from supported claims, attach evidence keys to every material rewrite, show the diff, and call buffalo.review_application_materials. After I approve that diff, call buffalo.export_approved_materials to create the exact PDFs for upload.",
+              "Use buffalo.search_jobs; do not make me browse the Buffalo Projects job board. Use buffalo.rank_jobs for a preliminary best-five shortlist, inspect each live description, and explain evidence and gaps. Every fit claim must quote my resume or passport and the job description; check them with buffalo.verify_job_fit and show only verified matches with both quotes. Then let me remove roles.",
+              "For each selected role, use buffalo.prepare_application_materials. Draft a tailored resume and cover letter only from supported claims, attach evidence keys plus exact resume and job-description quotes to every material rewrite, show the diff, and call buffalo.review_application_materials with the live job description text. After I approve that diff, call buffalo.export_approved_materials to create the exact PDFs for upload.",
               "Call buffalo.prepare_job_applications. Inspect every selected employer form first, match saved answers, then ask me one deduplicated set of genuinely missing material questions. Remember only answers I confirm and only if I opted into local storage.",
               "Upload my approved materials and fill every supported field. Do not infer qualifications, employment dates, education, work authorization, sponsorship, salary, references, or voluntary demographic answers.",
               "If blocked by login, CAPTCHA, assessment, identity check, signature, or a voluntary demographic section, record the exact checkpoint, hand me that one step, and resume afterward.",
@@ -1076,7 +1147,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
             text: [
               `Saved scout: ${searchId}`,
               "Call buffalo.run_job_scout. Return only jobs added since the last successful run.",
-              "If a candidate profile is attached, use its evidence-aware ranking and show the strongest five with reasons, gaps, pay, work mode, and official URLs.",
+              "If a candidate profile is attached, use its evidence-aware ranking and show the strongest five with their quoted evidence matches, preference reasons, gaps, pay, work mode, and official URLs.",
               "Do not auto-apply from a scheduled run. Ask me which roles to advance, then use the full apply-to-buffalo-jobs workflow.",
             ].join("\n"),
           },

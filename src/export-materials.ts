@@ -106,6 +106,7 @@ export async function exportApprovedMaterials(
   input: {
     profileId: string;
     job: LiveJob;
+    jobDescriptionText: string;
     originalResumeText: string;
     tailoredResumeText: string;
     coverLetter?: string | undefined;
@@ -122,6 +123,7 @@ export async function exportApprovedMaterials(
   const review = reviewApplicationMaterials({
     passport: profile.passport,
     job: input.job,
+    jobDescriptionText: input.jobDescriptionText,
     originalResumeText: input.originalResumeText,
     tailoredResumeText: input.tailoredResumeText,
     ...(input.coverLetter ? { coverLetter: input.coverLetter } : {}),
@@ -200,7 +202,6 @@ export async function exportApprovedMaterials(
         },
         resume: evidence,
         coverLetterPath,
-        proposedClaims: input.proposedClaims,
         evidenceReview: review.evidenceReview,
       },
       null,

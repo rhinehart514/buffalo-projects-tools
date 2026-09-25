@@ -1,0 +1,276 @@
+{
+  "version": "buffalo-catalog-verification/v1",
+  "generatedAt": "2026-09-25T14:38:59.690Z",
+  "extractor": "pattern/v1",
+  "entries": [
+    {
+      "id": "launch-ny",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://launchny.org/entrepreneurs/apply-now/",
+          "finalUrl": "https://launchny.org/entrepreneurs/apply-now/",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 4154
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "ub-cultivator",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www.buffalo.edu/partnerships/about/programs/ub-cultivator.html",
+          "finalUrl": "https://www.buffalo.edu/partnerships/about/programs/ub-cultivator.html",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 15117
+        },
+        {
+          "role": "registration",
+          "url": "https://bep.formstack.com/forms/cultivator_apply",
+          "finalUrl": "https://bep.formstack.com/forms/cultivator_apply",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 0
+        }
+      ],
+      "observed": {
+        "status": "rolling",
+        "deadline": null
+      },
+      "evidence": [
+        {
+          "field": "status",
+          "value": "rolling",
+          "quote": "Applications remain open on a rolling basis, with deadlines announced for future cohorts.",
+          "url": "https://www.buffalo.edu/partnerships/about/programs/ub-cultivator.html"
+        },
+        {
+          "field": "status",
+          "value": "rolling",
+          "quote": "Cultivator is accepting applications on a rolling basis.",
+          "url": "https://www.buffalo.edu/partnerships/about/programs/ub-cultivator.html"
+        }
+      ],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "buffalo-business-assistance-grant",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": null,
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www3.erie.gov/businesshub/press/city-buffalo-business-assistance-grant",
+          "finalUrl": "https://www3.erie.gov/businesshub/press/city-buffalo-business-assistance-grant",
+          "httpStatus": 403,
+          "ok": false,
+          "characterCount": 0
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": [
+        {
+          "kind": "access-denied",
+          "url": "https://www3.erie.gov/businesshub/press/city-buffalo-business-assistance-grant",
+          "detail": "HTTP 403"
+        }
+      ]
+    },
+    {
+      "id": "buffalo-permits",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://epermits.buffalony.gov/submit-record",
+          "finalUrl": "https://epermits.buffalony.gov/submit-record",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 4830
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "erie-funding-directory",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www3.erie.gov/businesshub/funding-opportunities",
+          "finalUrl": "https://www3.erie.gov/businesshub/funding-opportunities",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 2730
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "erie-microenterprise",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www3.erie.gov/economicdevelopment/businesshub/sites/www3.erie.gov.economicdevelopment/files/2025-07/microenterprise-loan-grant-flyer-rev-may-2025.pdf",
+          "finalUrl": "https://www3.erie.gov/economicdevelopment/businesshub/sites/www3.erie.gov.economicdevelopment/files/2025-07/microenterprise-loan-grant-flyer-rev-may-2025.pdf",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 2811
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "erie-procurement",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www4.erie.gov/doing-business",
+          "finalUrl": "https://www4.erie.gov/doing-business",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 580
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "nys-contract-reporter",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www.nyscr.ny.gov/home/contracts",
+          "finalUrl": "https://www.nyscr.ny.gov/home/contracts",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 2823
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "nys-small-business-hub",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://esd.ny.gov/doing-business-ny/small-business-hub",
+          "finalUrl": "https://esd.ny.gov/doing-business-ny/small-business-hub",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 14322
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "nys-ssbci-technical-assistance",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://www.esd.ny.gov/ssbci-technical-assistance-program",
+          "finalUrl": "https://www.esd.ny.gov/ssbci-technical-assistance-program",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 5222
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    },
+    {
+      "id": "nys-pre-seed-seed-fund",
+      "checkedAt": "2026-09-25T14:38:59.690Z",
+      "lastVerified": "2026-09-25",
+      "pages": [
+        {
+          "role": "official",
+          "url": "https://esd.ny.gov/pre-seed-and-seed-matching-fund-program",
+          "finalUrl": "https://esd.ny.gov/pre-seed-and-seed-matching-fund-program",
+          "httpStatus": 200,
+          "ok": true,
+          "characterCount": 6950
+        }
+      ],
+      "observed": {
+        "status": "unknown",
+        "deadline": null
+      },
+      "evidence": [],
+      "rejectedFindingCount": 0,
+      "drift": []
+    }
+  ]
+}
