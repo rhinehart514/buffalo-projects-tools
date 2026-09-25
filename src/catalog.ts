@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const opportunityKinds = [
   "accelerator",
   "capital",
@@ -21,36 +23,57 @@ export const projectStages = [
 
 export type ProjectStage = (typeof projectStages)[number];
 
-export type RegistrationMode = "browser-form" | "official-starting-point";
+/**
+ * open: a window is open now. closed: not accepting. rolling: accepted at
+ * any time. unknown: the catalog makes no claim; the official page decides.
+ */
+export const availabilityStatuses = ["open", "closed", "rolling", "unknown"] as const;
 
-export interface Opportunity {
-  id: string;
-  name: string;
-  provider: string;
-  geography: string;
-  summary: string;
-  kinds: OpportunityKind[];
-  stages: ProjectStage[];
-  signals: string[];
-  officialUrl: string;
-  reviewedAt: string;
-  availability: {
-    state: "rolling" | "check-current-window" | "directory" | "public-site";
-    note: string;
-  };
-  registration: {
-    mode: RegistrationMode;
-    startUrl: string;
-    allowedOrigins: string[];
-    note: string;
-  };
-  caution: string;
-}
+export type AvailabilityStatus = (typeof availabilityStatuses)[number];
+
+export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "Use YYYY-MM-DD");
+const httpsUrlSchema = z.url({ protocol: /^https$/u });
+
+export const opportunitySchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]+$/u),
+    name: z.string().min(1),
+    provider: z.string().min(1),
+    geography: z.string().min(1),
+    summary: z.string().min(1),
+    kinds: z.array(z.enum(opportunityKinds)).min(1),
+    stages: z.array(z.enum(projectStages)).min(1),
+    signals: z.array(z.string().min(1)).min(1),
+    officialUrl: httpsUrlSchema,
+    /** Date a person last reviewed this entry against the official source. */
+    reviewedAt: isoDateSchema,
+    availability: z.object({
+      status: z.enum(availabilityStatuses),
+      /** Application deadline stated by the official source, if any. */
+      deadline: isoDateSchema.nullable(),
+      note: z.string().min(1),
+    }),
+    registration: z.object({
+      mode: z.enum(["browser-form", "official-starting-point"]),
+      startUrl: httpsUrlSchema,
+      allowedOrigins: z.array(httpsUrlSchema).min(1),
+      note: z.string().min(1),
+    }),
+    caution: z.string().min(1),
+  })
+  .refine(
+    (entry) =>
+      entry.registration.allowedOrigins.includes(new URL(entry.registration.startUrl).origin),
+    { message: "registration.startUrl must be on an allowed origin" },
+  );
+
+export type Opportunity = z.infer<typeof opportunitySchema>;
+export type RegistrationMode = Opportunity["registration"]["mode"];
 
 const sharedCaution =
   "This is a reviewed starting point, not an eligibility determination. Confirm current requirements, availability, and deadlines on the official site before acting.";
 
-export const opportunities: Opportunity[] = [
+export const opportunities: Opportunity[] = z.array(opportunitySchema).parse([
   {
     id: "launch-ny",
     name: "Launch NY assistance application",
@@ -76,7 +99,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://launchny.org/entrepreneurs/apply-now/",
     reviewedAt: "2026-08-12",
     availability: {
-      state: "public-site",
+      status: "unknown",
+      deadline: null,
       note: "The official Apply Now page currently presents an application for assistance.",
     },
     registration: {
@@ -113,7 +137,8 @@ export const opportunities: Opportunity[] = [
       "https://www.buffalo.edu/partnerships/about/programs/ub-cultivator.html",
     reviewedAt: "2026-08-12",
     availability: {
-      state: "rolling",
+      status: "rolling",
+      deadline: null,
       note: "The official program page says applications are accepted on a rolling basis and cohort deadlines are announced separately.",
     },
     registration: {
@@ -148,7 +173,8 @@ export const opportunities: Opportunity[] = [
       "https://www3.erie.gov/businesshub/press/city-buffalo-business-assistance-grant",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "check-current-window",
+      status: "unknown",
+      deadline: null,
       note: "Grant windows change. Check the official page for current availability before preparing an application.",
     },
     registration: {
@@ -184,7 +210,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://epermits.buffalony.gov/submit-record",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "public-site",
+      status: "unknown",
+      deadline: null,
       note: "The portal is a starting point; the correct record type depends on the project and location.",
     },
     registration: {
@@ -208,7 +235,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://www3.erie.gov/businesshub/funding-opportunities",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "directory",
+      status: "unknown",
+      deadline: null,
       note: "Individual programs have their own windows and requirements.",
     },
     registration: {
@@ -240,7 +268,8 @@ export const opportunities: Opportunity[] = [
       "https://www3.erie.gov/economicdevelopment/businesshub/sites/www3.erie.gov.economicdevelopment/files/2025-07/microenterprise-loan-grant-flyer-rev-may-2025.pdf",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "check-current-window",
+      status: "unknown",
+      deadline: null,
       note: "Confirm that the program and intake path remain current with the county contact listed in the official material.",
     },
     registration: {
@@ -273,7 +302,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://www4.erie.gov/doing-business",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "public-site",
+      status: "unknown",
+      deadline: null,
       note: "Current solicitations and vendor steps are controlled by the official county pages linked here.",
     },
     registration: {
@@ -304,7 +334,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://www.nyscr.ny.gov/home/contracts",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "public-site",
+      status: "unknown",
+      deadline: null,
       note: "Listings and registration requirements change in the official system.",
     },
     registration: {
@@ -334,7 +365,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://esd.ny.gov/doing-business-ny/small-business-hub",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "directory",
+      status: "unknown",
+      deadline: null,
       note: "Use the hub to identify a current official program; each program controls its own requirements.",
     },
     registration: {
@@ -364,7 +396,8 @@ export const opportunities: Opportunity[] = [
     officialUrl: "https://www.esd.ny.gov/ssbci-technical-assistance-program",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "public-site",
+      status: "unknown",
+      deadline: null,
       note: "Confirm the current intake route and service fit on the official page.",
     },
     registration: {
@@ -398,7 +431,8 @@ export const opportunities: Opportunity[] = [
       "https://esd.ny.gov/pre-seed-and-seed-matching-fund-program",
     reviewedAt: "2026-08-03",
     availability: {
-      state: "check-current-window",
+      status: "unknown",
+      deadline: null,
       note: "Confirm current intake status, requirements, and investment terms on the official page.",
     },
     registration: {
@@ -410,7 +444,7 @@ export const opportunities: Opportunity[] = [
     },
     caution: sharedCaution,
   },
-];
+] satisfies z.input<typeof opportunitySchema>[]);
 
 export function getOpportunity(id: string): Opportunity | undefined {
   return opportunities.find((opportunity) => opportunity.id === id);

@@ -80,7 +80,9 @@ time.
 
 The local accelerator and business-help catalog remains available. Program
 matches are starting points, never eligibility determinations. Live official
-pages own their requirements, deadlines, and availability.
+pages own their requirements, deadlines, and availability. Each result shows
+the last day its official page was checked without drift and the page text
+that states any status or deadline.
 
 ## Voice
 

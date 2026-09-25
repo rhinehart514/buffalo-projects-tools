@@ -139,10 +139,24 @@ test("exposes the complete workflow through MCP", async (context) => {
   }
   const payload = JSON.parse(first.text) as {
     notice: string;
-    matches: Array<{ id: string }>;
+    catalogCheckedAt: string;
+    matches: Array<{
+      id: string;
+      verification: { state: string; lastVerified: string | null; evidence: Array<{ quote: string }> };
+    }>;
   };
 
   assert.match(payload.notice, /not eligibility decisions/);
+  assert.ok(payload.catalogCheckedAt);
+  for (const match of payload.matches) {
+    assert.ok(["no-drift", "drift", "never-verified"].includes(match.verification.state));
+    assert.ok("lastVerified" in match.verification);
+  }
+  assert.ok(
+    payload.matches
+      .find((match) => match.id === "ub-cultivator")
+      ?.verification.evidence.some((item) => /rolling basis/u.test(item.quote)),
+  );
   assert.ok(payload.matches.some((match) => match.id === "launch-ny"));
 
   const jobsResult = await client.callTool({

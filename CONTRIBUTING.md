@@ -15,7 +15,9 @@ round-trip text extraction coverage.
 
 New catalog entries must use an official City of Buffalo, Erie County, New York
 State, university, or program-provider source. Record the date you actually
-reviewed the source. Describe it as a starting point, preserve uncertainty about
+reviewed the source. Set `availability.status` and `deadline` only to what the
+official page states, then run `pnpm catalog:verify` and commit the refreshed
+`src/catalog-verification.json`. Resolve or explain every reported drift. Describe it as a starting point, preserve uncertainty about
 eligibility and timing, and keep the browser allowlist as narrow as the live
 route permits.
 

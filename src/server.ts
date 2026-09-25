@@ -14,6 +14,7 @@ import {
   opportunityKinds,
   projectStages,
 } from "./catalog.js";
+import { catalogVerification, verificationFor } from "./catalog-evidence.js";
 import { exportApprovedMaterials } from "./export-materials.js";
 import {
   jobOpportunityKinds,
@@ -460,8 +461,9 @@ export const toolHandlers = {
   search: (input: z.infer<typeof searchInputSchema>) => ({
     scope: "Buffalo and Western New York, plus reviewed New York State starting points",
     catalogReviewedThrough: opportunities.map((item) => item.reviewedAt).sort().at(-1),
+    catalogCheckedAt: catalogVerification.generatedAt,
     notice:
-      "Matches are plausible starting points, not eligibility decisions. Verify current requirements and deadlines on each official site.",
+      "Matches are plausible starting points, not eligibility decisions. verification.evidence quotes the official page text that code found for a status or deadline; an empty list means the page states neither. lastVerified is the last day the official page loaded and contradicted nothing in the catalog. Treat drift and never-verified entries as unconfirmed and check the official site.",
     matches: searchOpportunities(input).map((match) => ({
       id: match.opportunity.id,
       name: match.opportunity.name,
@@ -472,6 +474,7 @@ export const toolHandlers = {
       registrationMode: match.opportunity.registration.mode,
       officialUrl: match.opportunity.officialUrl,
       reviewedAt: match.opportunity.reviewedAt,
+      verification: verificationFor(match.opportunity),
       reasons: match.reasons,
       caution: match.opportunity.caution,
     })),
@@ -479,7 +482,7 @@ export const toolHandlers = {
   get: (input: z.infer<typeof getInputSchema>) => {
     const opportunity = getOpportunity(input.opportunityId);
     if (!opportunity) throw new Error(`Unknown opportunity: ${input.opportunityId}`);
-    return opportunity;
+    return { ...opportunity, verification: verificationFor(opportunity) };
   },
   prepare: (input: z.infer<typeof prepareInputSchema>) => prepareRegistration(input),
   review: (input: z.infer<typeof reviewInputSchema>) => reviewSubmission(input),
@@ -980,7 +983,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
     {
       title: "Find Buffalo opportunities",
       description:
-        "Match a project against a reviewed catalog of official Buffalo, WNY, and relevant NYS accelerators, capital, grants, permits, procurement, and business-help starting points. Returns plausible matches, never eligibility claims.",
+        "Match a project against a reviewed catalog of official Buffalo, WNY, and relevant NYS accelerators, capital, grants, permits, procurement, and business-help starting points. Returns plausible matches with last-verified dates and quoted official-page evidence, never eligibility claims.",
       inputSchema: searchInputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
@@ -992,7 +995,7 @@ export function createBuffaloServer(options: BuffaloServerOptions = {}): McpServ
     {
       title: "Inspect a Buffalo opportunity",
       description:
-        "Return the reviewed official source, current-status note, registration route, browser allowlist, and caution for one catalog entry.",
+        "Return the reviewed official source, current-status note, quoted verification evidence and drift, registration route, browser allowlist, and caution for one catalog entry.",
       inputSchema: getInputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

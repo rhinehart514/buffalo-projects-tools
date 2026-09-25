@@ -1,4 +1,5 @@
 import { getOpportunity, type Opportunity } from "./catalog.js";
+import { verificationFor } from "./catalog-evidence.js";
 import {
   buildVenturePassport,
   type ApplicantFacts,
@@ -57,6 +58,7 @@ export function prepareRegistration(input: PrepareRegistrationInput) {
       startUrl: opportunity.registration.startUrl,
       registrationMode: opportunity.registration.mode,
       availability: opportunity.availability,
+      verification: verificationFor(opportunity),
       caution: opportunity.caution,
     },
     candidateAnswers,

@@ -149,8 +149,15 @@ task. A scheduled scout shortlists jobs but never submits applications by itself
 
 | Tool | Result |
 | --- | --- |
-| `buffalo.search_opportunities` | Ranked matches from the reviewed accelerator and business-help catalog |
-| `buffalo.get_opportunity` | Official source, review date, current-status note, and safe route |
+| `buffalo.search_opportunities` | Ranked matches from the reviewed catalog, each with its last-verified date, quoted official-page evidence, and drift |
+| `buffalo.get_opportunity` | Official source, review date, status, deadline, verification evidence, and safe route |
+
+The catalog is checked against each official page with `pnpm catalog:verify`.
+It fetches every official and registration URL, finds status, deadline, and
+cohort-date statements, keeps only findings whose quoted text is on the page and
+states the value, and writes `src/catalog-verification.json`. The server ships
+that report. The command exits non-zero when any entry drifted (dead link,
+access denied, closed, changed deadline, and similar).
 | `buffalo.prepare_registration` | Source-labeled registration packet and host-browser handoff |
 | `buffalo.review_submission` | Destination, unsupported-claim, disclosure, commitment, and final-approval review |
 

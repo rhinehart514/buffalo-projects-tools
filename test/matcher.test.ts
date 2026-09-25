@@ -15,6 +15,7 @@ test("catalog ids and official routes are internally safe", () => {
       `${opportunity.id} start URL is allowlisted`,
     );
     assert.match(opportunity.reviewedAt, /^2026-\d{2}-\d{2}$/u);
+    assert.ok(["open", "closed", "rolling", "unknown"].includes(opportunity.availability.status));
     assert.match(opportunity.caution, /not an eligibility determination/);
   }
 });
