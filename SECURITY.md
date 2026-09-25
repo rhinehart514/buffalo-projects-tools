@@ -27,6 +27,16 @@ host supplies. It does not scan directories or fetch arbitrary resume URLs.
 
 Extracted text is returned to the MCP host but is not persisted by the server.
 
+## Quote verification
+
+`buffalo.verify_job_fit` and `buffalo.review_application_materials` check
+resume, passport, and job-description quotes in process. The text arrives from
+the MCP host and is neither persisted nor sent to Buffalo Projects or any other
+service.
+
+The `pnpm catalog:verify` maintenance command fetches only the official and
+registration URLs already in the catalog. It carries no candidate data.
+
 ## Local candidate state
 
 Persistence is opt-in and requires an explicit consent flag. The state file and

@@ -64,6 +64,8 @@ time.
 - Selected jobs are revalidated before preparation. Missing or stale IDs fail
   closed.
 - Preliminary ranking is not an eligibility, hiring, or suitability decision.
+- Every fit claim quotes the candidate's resume or passport and the job text.
+  Code checks both quotes locally; unverifiable claims are dropped and counted.
 - Live employer descriptions own requirements; the host must inspect them.
 - Only applicant-confirmed or evidence-supported facts become claims.
 - Tailored materials require an evidence map, visible diff, and separate

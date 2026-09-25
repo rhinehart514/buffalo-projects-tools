@@ -83,6 +83,12 @@ function passport() {
   });
 }
 
+const jobDescription = [
+  "Senior Software Engineer",
+  "You will build customer-facing web applications with TypeScript and React.",
+  "Requirements: 3+ years shipping production TypeScript; experience with product engineering.",
+].join("\n");
+
 test("ranks a best-five batch from candidate evidence and explicit preferences", () => {
   const result = rankJobs(
     passport(),
@@ -102,6 +108,36 @@ test("ranks a best-five batch from candidate evidence and explicit preferences",
   assert.ok(result.ranked[0]!.score > 0);
   assert.equal(result.excluded[0]?.job.id, "job-2");
   assert.match(result.notice, /not a hiring or eligibility decision/);
+
+  const top = result.ranked[0]!;
+  assert.deepEqual(top.preferenceReasons, ["preferred work mode: hybrid", "preferred sector: technology"]);
+  assert.equal(top.droppedMatchCount, 0);
+  const roleMatch = top.evidenceMatches.find(
+    (match) => match.kind === "desired role" && match.term === "software",
+  );
+  assert.deepEqual(
+    roleMatch && {
+      candidateQuote: roleMatch.candidateQuote,
+      jobField: roleMatch.jobField,
+      jobQuote: roleMatch.jobQuote,
+    },
+    { candidateQuote: "Software Engineer", jobField: "title", jobQuote: "Senior Software Engineer" },
+  );
+  // Every explanation quotes both sides, and the shared word is in both quotes.
+  for (const match of top.evidenceMatches) {
+    assert.match(match.candidateQuote.toLowerCase(), new RegExp(match.term.replace(/[.+#]/gu, "\\$&")));
+    assert.match(match.jobQuote.toLowerCase(), new RegExp(match.term.replace(/[.+#]/gu, "\\$&")));
+  }
+});
+
+test("ranking scores whole words only, so a skill inside another word is not a match", () => {
+  const candidate = buildCandidatePassport({
+    candidate: { fullName: "Example Candidate", skills: ["Java"] },
+    factsConfirmedByUser: true,
+  });
+  const result = rankJobs(candidate, [job({ title: "JavaScript Developer" })]);
+  assert.equal(result.ranked[0]!.score, 0);
+  assert.deepEqual(result.ranked[0]!.evidenceMatches, []);
 });
 
 test("reviews tailored materials against passport evidence and exposes the diff", () => {
@@ -115,6 +151,7 @@ test("reviews tailored materials against passport evidence and exposes the diff"
   const review = reviewApplicationMaterials({
     passport: candidate,
     job: job(),
+    jobDescriptionText: jobDescription,
     originalResumeText: "Engineer\nBuilt software",
     tailoredResumeText:
       "Senior Software Engineer\nShipped customer-facing TypeScript applications",
@@ -123,25 +160,106 @@ test("reviews tailored materials against passport evidence and exposes the diff"
       {
         text: "Shipped customer-facing TypeScript applications",
         evidenceKeys: [claimKey],
+        candidateQuote: "Shipped customer-facing TypeScript applications",
+        jobQuote: "build customer-facing web applications with TypeScript",
       },
     ],
   });
 
   assert.equal(review.decision, "ready-for-applicant-review");
+  assert.equal(review.evidenceReview.evidenceMap.length, 1);
+  assert.equal(review.evidenceReview.droppedClaimCount, 0);
   assert.equal(review.diff.addedLineCount, 2);
   assert.equal(review.coverLetter.included, true);
 
   const blocked = reviewApplicationMaterials({
     passport: candidate,
     job: job(),
+    jobDescriptionText: jobDescription,
     originalResumeText: "Engineer",
     tailoredResumeText: "Invented executive credential",
     proposedClaims: [
-      { text: "Invented executive credential", evidenceKeys: ["missing.claim"] },
+      {
+        text: "Invented executive credential",
+        evidenceKeys: ["missing.claim"],
+        candidateQuote: "Engineer",
+        jobQuote: "Senior Software Engineer",
+      },
     ],
   });
   assert.equal(blocked.decision, "blocked");
   assert.deepEqual(blocked.evidenceReview.unsupportedEvidenceKeys, ["missing.claim"]);
+});
+
+test("drops and counts material claims whose quotes are fabricated", () => {
+  const candidate = passport();
+  const claimKey = candidate.claims.find((claim) =>
+    claim.value.includes("customer-facing TypeScript"),
+  )!.key;
+  const review = reviewApplicationMaterials({
+    passport: candidate,
+    job: job(),
+    jobDescriptionText: jobDescription,
+    originalResumeText: "Engineer\nShipped customer-facing TypeScript applications",
+    tailoredResumeText: "Led a team of 12 engineers\nShipped TypeScript apps used by 1M people",
+    proposedClaims: [
+      {
+        text: "Shipped customer-facing TypeScript applications",
+        evidenceKeys: [claimKey],
+        candidateQuote: "Shipped  customer‑facing\nTypeScript applications",
+        jobQuote: "build customer-facing web applications with TypeScript",
+      },
+      {
+        text: "Led a team of 12 engineers",
+        evidenceKeys: [claimKey],
+        candidateQuote: "Led a team of 12 engineers",
+        jobQuote: "build customer-facing web applications with TypeScript",
+      },
+      {
+        text: "Shipped TypeScript apps used by 1M people",
+        evidenceKeys: [claimKey],
+        candidateQuote: "Shipped customer-facing TypeScript applications",
+        jobQuote: "Must have shipped apps used by 1M people",
+      },
+    ],
+  });
+
+  assert.equal(review.decision, "blocked");
+  assert.equal(review.evidenceReview.droppedClaimCount, 2);
+  assert.deepEqual(
+    review.evidenceReview.evidenceMap.map((claim) => claim.text),
+    ["Shipped customer-facing TypeScript applications"],
+  );
+  assert.deepEqual(review.evidenceReview.droppedClaims, [
+    { index: 1, reasons: ["candidateQuote is not in the candidate's resume or passport"] },
+    { index: 2, reasons: ["jobQuote is not in the job description or listing"] },
+  ]);
+  assert.ok(
+    review.evidenceReview.blockingReasons.some((reason) => reason.startsWith("2 material claim(s)")),
+  );
+});
+
+test("a candidate quote must come from the resume or the claims it cites", () => {
+  const candidate = passport();
+  const skillKey = candidate.claims.find((claim) => claim.value === "TypeScript")!.key;
+  const review = reviewApplicationMaterials({
+    passport: candidate,
+    job: job(),
+    jobDescriptionText: jobDescription,
+    originalResumeText: "Engineer",
+    tailoredResumeText: "Shipped customer-facing TypeScript applications",
+    proposedClaims: [
+      {
+        text: "Shipped customer-facing TypeScript applications",
+        // Cites the skill claim but quotes a different claim's text.
+        evidenceKeys: [skillKey],
+        candidateQuote: "Shipped customer-facing TypeScript applications",
+        jobQuote: "production TypeScript",
+      },
+    ],
+  });
+  assert.equal(review.decision, "blocked");
+  assert.equal(review.evidenceReview.droppedClaimCount, 1);
 });
 
 test("exports the applicant-approved tailored resume and cover letter as uploadable PDFs", async (context) => {
@@ -165,9 +283,17 @@ test("exports the applicant-approved tailored resume and cover letter as uploada
       {
         profileId: "example",
         job: job(),
+        jobDescriptionText: jobDescription,
         originalResumeText: "Example Candidate\nSoftware Engineer",
         tailoredResumeText: "Example Candidate\nEXPERIENCE\nSoftware Engineer",
-        proposedClaims: [{ text: "Software Engineer", evidenceKeys: [claimKey] }],
+        proposedClaims: [
+          {
+            text: "Software Engineer",
+            evidenceKeys: [claimKey],
+            candidateQuote: "Software Engineer",
+            jobQuote: "Senior Software Engineer",
+          },
+        ],
         approvedByUser: false,
       },
       dataDir,
@@ -179,10 +305,16 @@ test("exports the applicant-approved tailored resume and cover letter as uploada
       {
         profileId: "example",
         job: job(),
+        jobDescriptionText: jobDescription,
         originalResumeText: "Example Candidate\nSoftware Engineer",
         tailoredResumeText: "Example Candidate\nInvented executive credential",
         proposedClaims: [
-          { text: "Invented executive credential", evidenceKeys: ["missing.claim"] },
+          {
+            text: "Invented executive credential",
+            evidenceKeys: ["missing.claim"],
+            candidateQuote: "Invented executive credential",
+            jobQuote: "Senior Software Engineer",
+          },
         ],
         approvedByUser: true,
       },
@@ -195,6 +327,7 @@ test("exports the applicant-approved tailored resume and cover letter as uploada
     {
       profileId: "example",
       job: job(),
+      jobDescriptionText: jobDescription,
       originalResumeText: [
         "Example Candidate",
         "candidate@example.com | Buffalo, NY",
@@ -214,6 +347,8 @@ test("exports the applicant-approved tailored resume and cover letter as uploada
         {
           text: "Shipped customer-facing TypeScript applications",
           evidenceKeys: [claimKey],
+          candidateQuote: "Shipped customer-facing TypeScript applications",
+          jobQuote: "shipping production TypeScript",
         },
       ],
       approvedByUser: true,

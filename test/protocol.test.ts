@@ -119,6 +119,7 @@ test("exposes the complete workflow through MCP", async (context) => {
       "buffalo.save_job_scout",
       "buffalo.search_jobs",
       "buffalo.search_opportunities",
+      "buffalo.verify_job_fit",
     ],
   );
 
@@ -249,6 +250,33 @@ test("exposes the complete workflow through MCP", async (context) => {
     progressResult as { content: Array<{ type: string; text?: string }> }
   ).content[0]?.text;
   assert.equal(JSON.parse(progressText!).takeover.status, "candidate-action-needed");
+
+  const fitResult = await client.callTool({
+    name: "buffalo.verify_job_fit",
+    arguments: {
+      jobId: "job-1",
+      jobDescriptionText: "Build hybrid TypeScript services for Buffalo clinics.",
+      resumeText: "Built TypeScript services for three regional clinics.",
+      matches: [
+        {
+          claim: "Has built the TypeScript services this role describes",
+          candidateQuote: "Built TypeScript services",
+          jobQuote: "Build hybrid TypeScript services",
+        },
+        {
+          claim: "Led a platform team",
+          candidateQuote: "Led a platform team of eight",
+          jobQuote: "Build hybrid TypeScript services",
+        },
+      ],
+    },
+  });
+  const fitText = (
+    fitResult as { content: Array<{ type: string; text?: string }> }
+  ).content[0]?.text;
+  const fit = JSON.parse(fitText!) as { verifiedMatches: unknown[]; droppedCount: number };
+  assert.equal(fit.verifiedMatches.length, 1);
+  assert.equal(fit.droppedCount, 1);
 
   const prompts = await client.listPrompts();
   assert.ok(prompts.prompts.some((prompt) => prompt.name === "register-in-buffalo"));

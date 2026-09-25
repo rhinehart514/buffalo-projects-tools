@@ -23,6 +23,8 @@ export {
 } from "./jobs.js";
 export { importResume } from "./resume.js";
 export { rankJobs } from "./ranking.js";
+export { verifyJobFit, verifyQuotedMatches } from "./fit.js";
+export { catalogVerification, verificationFor } from "./catalog-evidence.js";
 export {
   prepareApplicationMaterials,
   reviewApplicationMaterials,
@@ -64,7 +66,7 @@ if (invokedAsBin()) {
         accountRequired: false,
         catalogEntries: opportunities.length,
         liveJobSource: "https://buffaloprojects.com/api/jobs",
-        tools: 23,
+        tools: 24,
       })}\n`,
     );
   } else if (process.argv.includes("--version")) {

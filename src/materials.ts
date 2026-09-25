@@ -1,10 +1,15 @@
 import type { CandidatePassport } from "./candidate.js";
+import { jobSourceText, verifyQuotedMatches } from "./fit.js";
 import type { LiveJob } from "./jobs.js";
 import type { ResumeEvidence } from "./resume.js";
 
 export interface ProposedMaterialClaim {
   text: string;
   evidenceKeys: string[];
+  /** Exact text from the original resume or a cited passport claim. */
+  candidateQuote: string;
+  /** Exact text from the live job description this claim answers. */
+  jobQuote: string;
 }
 
 function meaningfulLines(value: string): string[] {
@@ -68,9 +73,9 @@ export function prepareApplicationMaterials(
       "Read the live official job description before drafting.",
       "Create a tailored resume version and a short cover letter only when the application benefits from one.",
       "Keep employment titles, employers, dates, education, credentials, metrics, and qualifications factually identical to the supported claims and resume evidence.",
-      "For every new or materially rewritten claim, attach one or more supported claim keys.",
+      "For every new or materially rewritten claim, attach one or more supported claim keys, a candidateQuote copied exactly from the original resume or a cited claim, and a jobQuote copied exactly from the live job description it answers.",
       "Do not keyword-stuff, invent missing requirements, or hide gaps. List uncertain requirements separately.",
-      "Call buffalo.review_application_materials with the original and tailored resume text, cover letter, and evidence map before using the materials.",
+      "Call buffalo.review_application_materials with the original and tailored resume text, the live job description text, cover letter, and evidence map before using the materials. Claims whose quotes are not found are dropped from the evidence map and block the materials until fixed.",
     ],
     finishedResult:
       "A tailored resume, optional cover letter, visible evidence map, original-to-tailored diff, and explicit applicant review—not an unreviewed rewrite.",
@@ -80,12 +85,33 @@ export function prepareApplicationMaterials(
 export function reviewApplicationMaterials(input: {
   passport: CandidatePassport;
   job: LiveJob;
+  jobDescriptionText: string;
   originalResumeText: string;
   tailoredResumeText: string;
   coverLetter?: string | undefined;
   proposedClaims: ProposedMaterialClaim[];
 }) {
   const claimsByKey = new Map(input.passport.claims.map((claim) => [claim.key, claim]));
+  // A candidate quote may come from the original resume or from the passport
+  // claims this specific material claim cites, never from unrelated claims.
+  const quoteChecks = input.proposedClaims.map((claim) =>
+    verifyQuotedMatches(
+      [{ claim: claim.text, candidateQuote: claim.candidateQuote, jobQuote: claim.jobQuote }],
+      {
+        candidate: [
+          input.originalResumeText,
+          ...claim.evidenceKeys.map((key) => claimsByKey.get(key)?.value ?? ""),
+        ].join("\n"),
+        job: jobSourceText(input.job, input.jobDescriptionText),
+      },
+    ),
+  );
+  const evidenceMap = input.proposedClaims.filter(
+    (_, index) => quoteChecks[index]!.droppedCount === 0,
+  );
+  const droppedClaims = quoteChecks.flatMap((check, index) =>
+    check.dropped.map((dropped) => ({ index, reasons: dropped.reasons })),
+  );
   const unsupportedEvidenceKeys = [
     ...new Set(
       input.proposedClaims.flatMap((claim) =>
@@ -118,6 +144,11 @@ export function reviewApplicationMaterials(input: {
     ...(claimsWithoutEvidence.length
       ? ["one or more new material claims have no evidence mapping"]
       : []),
+    ...(droppedClaims.length
+      ? [
+          `${droppedClaims.length} material claim(s) quote text that is not in the resume/passport or the job description`,
+        ]
+      : []),
     ...(!input.tailoredResumeText.trim() ? ["tailored resume is empty"] : []),
   ];
   return {
@@ -136,6 +167,9 @@ export function reviewApplicationMaterials(input: {
       unsupportedEvidenceKeys,
       unconfirmedEvidenceKeys,
       claimsWithoutEvidence,
+      evidenceMap,
+      droppedClaimCount: droppedClaims.length,
+      droppedClaims,
       blockingReasons,
     },
     diff,

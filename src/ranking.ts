@@ -1,4 +1,6 @@
 import type { CandidatePassport } from "./candidate.js";
+import { passportEvidenceText, verifyQuotedMatches, type QuotedMatch } from "./fit.js";
+import { containsTerm } from "./grounding.js";
 import type { JobSector, JobWorkMode, LiveJob } from "./jobs.js";
 
 export interface JobRankingPreferences {
@@ -41,65 +43,137 @@ function normalizedList(values: string[] | undefined): string[] {
   return (values ?? []).map((value) => value.trim().toLowerCase()).filter(Boolean);
 }
 
+type StatementKind = "desired role" | "skill" | "evidence";
+
+/** Score per distinct matched word; evidence claims explain but do not score. */
+const statementWeights: Record<StatementKind, number> = {
+  "desired role": 12,
+  skill: 4,
+  evidence: 0,
+};
+
+export interface EvidenceMatch extends QuotedMatch {
+  kind: StatementKind;
+  term: string;
+  claimKey: string | null;
+  jobField: string;
+}
+
+interface CandidateStatement {
+  text: string;
+  claimKey: string | null;
+  kind: StatementKind;
+}
+
+function jobFields(job: LiveJob): Array<[string, string]> {
+  return [
+    ["title", job.title],
+    ["employer", job.employer],
+    ["location", job.location],
+    ["sector", job.department],
+    ["work mode", job.workplace],
+    ["employment type", job.commitment],
+  ];
+}
+
+/**
+ * Pairs each candidate statement with the listing field that shares a word
+ * with it. Both sides are quoted verbatim so the pairing can be checked.
+ */
+function evidenceMatches(statements: CandidateStatement[], job: LiveJob): EvidenceMatch[] {
+  const fields = jobFields(job);
+  const matches: EvidenceMatch[] = [];
+  for (const statement of statements) {
+    const searchable = statement.kind === "desired role" ? fields.slice(0, 1) : fields;
+    for (const term of tokens(statement.text)) {
+      const field = searchable.find(([, value]) => containsTerm(value, term));
+      if (!field) continue;
+      matches.push({
+        claim: `${statement.kind} matches the job ${field[0]}: ${term}`,
+        kind: statement.kind,
+        term,
+        claimKey: statement.claimKey,
+        candidateQuote: statement.text,
+        jobField: field[0],
+        jobQuote: field[1],
+      });
+    }
+  }
+  return matches;
+}
+
 export function rankJobs(
   passport: CandidatePassport,
   jobs: LiveJob[],
   preferences: JobRankingPreferences = {},
 ) {
-  const desiredRoleTokens = tokens((passport.candidate.desiredRoles ?? []).join(" "));
-  const skillTokens = tokens((passport.candidate.skills ?? []).join(" "));
   const evidenceClaims = passport.claims.filter(
     (claim) =>
       claim.source === "user-confirmed" ||
       claim.source === "resume-evidence" ||
       claim.source === "project-evidence",
   );
+  const statements: CandidateStatement[] = [
+    ...(passport.candidate.desiredRoles ?? []).map((text) => ({
+      text,
+      claimKey: null,
+      kind: "desired role" as const,
+    })),
+    ...(passport.candidate.skills ?? []).map((text) => ({
+      text,
+      claimKey: null,
+      kind: "skill" as const,
+    })),
+    // Contact, authorization, and pay claims are not fit evidence; a name
+    // like "Example Candidate" would otherwise "match" employer "Example Co".
+    ...evidenceClaims
+      .filter((claim) => claim.sensitivity === "ordinary")
+      .map((claim) => ({ text: claim.value, claimKey: claim.key, kind: "evidence" as const })),
+  ].filter((statement) => statement.text.trim());
+  const candidateSource = [
+    ...(passport.candidate.desiredRoles ?? []),
+    ...(passport.candidate.skills ?? []),
+    passportEvidenceText(passport),
+  ].join("\n");
   const required = normalizedList(preferences.requiredWords);
   const avoided = normalizedList(preferences.avoidWords);
   const excludedEmployers = normalizedList(preferences.excludeEmployers);
   const preferredLocations = normalizedList(preferences.preferredLocations);
 
   const scored = jobs.map((job) => {
-    const searchable = [
-      job.title,
-      job.employer,
-      job.location,
-      job.department,
-      job.workplace,
-      job.commitment,
-    ]
-      .join(" ")
-      .toLowerCase();
-    const reasons: string[] = [];
+    const listingText = jobFields(job)
+      .map(([, value]) => value)
+      .join("\n");
+    const searchable = listingText.toLowerCase();
+    const verification = verifyQuotedMatches(evidenceMatches(statements, job), {
+      candidate: candidateSource,
+      job: listingText,
+    });
+    const preferenceReasons: string[] = [];
     const caveats: string[] = [];
     const blockers: string[] = [];
     let score = 0;
 
-    for (const token of desiredRoleTokens) {
-      if (tokens(job.title).includes(token)) {
-        score += 12;
-        reasons.push(`desired role matches title: ${token}`);
-      }
-    }
-    for (const token of skillTokens) {
-      if (searchable.includes(token)) {
-        score += 4;
-        reasons.push(`candidate skill appears in listing metadata: ${token}`);
-      }
+    const scoredTerms = new Set<string>();
+    for (const match of verification.verified) {
+      const key = `${match.kind}:${match.term}`;
+      if (scoredTerms.has(key)) continue;
+      scoredTerms.add(key);
+      score += statementWeights[match.kind];
     }
     if (preferences.preferredWorkModes?.includes(job.workplace)) {
       score += 6;
-      reasons.push(`preferred work mode: ${job.workplace}`);
+      preferenceReasons.push(`preferred work mode: ${job.workplace}`);
     }
     if (preferences.preferredSectors?.includes(job.department)) {
       score += 5;
-      reasons.push(`preferred sector: ${job.department}`);
+      preferenceReasons.push(`preferred sector: ${job.department}`);
     }
     if (
       preferredLocations.some((location) => job.location.toLowerCase().includes(location))
     ) {
       score += 5;
-      reasons.push(`preferred location: ${job.location}`);
+      preferenceReasons.push(`preferred location: ${job.location}`);
     }
     for (const word of required) {
       if (!searchable.includes(word)) blockers.push(`required term not observed: ${word}`);
@@ -118,7 +192,7 @@ export function rankJobs(
           blockers.push(`annual pay floor ${floor} is below preference`);
         } else {
           score += 4;
-          reasons.push(`annual pay floor meets preference: ${floor}`);
+          preferenceReasons.push(`annual pay floor meets preference: ${floor}`);
         }
       } else {
         caveats.push("annual pay is not confirmed in the index");
@@ -127,19 +201,15 @@ export function rankJobs(
     if (job.freshness !== "current") caveats.push(`freshness is ${job.freshness}`);
     if (job.employmentType === "unknown") caveats.push("employment type is not confirmed");
 
-    const supportingClaimKeys = evidenceClaims
-      .filter((claim) => tokens(claim.value).some((token) => searchable.includes(token)))
-      .map((claim) => claim.key)
-      .slice(0, 12);
-
     return {
       job,
       score,
       status: blockers.length > 0 ? ("excluded" as const) : ("candidate" as const),
-      reasons: [...new Set(reasons)],
+      evidenceMatches: verification.verified.slice(0, 12),
+      droppedMatchCount: verification.droppedCount,
+      preferenceReasons,
       caveats: [...new Set(caveats)],
       blockers,
-      supportingClaimKeys,
     };
   });
 
@@ -157,12 +227,12 @@ export function rankJobs(
   return {
     status: "preliminary-metadata-ranking" as const,
     notice:
-      "This ranking uses Buffalo Projects listing metadata and applicant evidence, not a hiring or eligibility decision. Inspect each live job description before claiming fit or applying.",
+      "This ranking uses Buffalo Projects listing metadata and applicant evidence, not a hiring or eligibility decision. Each evidence match quotes the candidate's passport and the listing; code checked both quotes. Inspect each live job description and use buffalo.verify_job_fit before claiming fit or applying.",
     ranked,
     excluded: scored
       .filter((item) => item.status === "excluded")
       .map((item) => ({ job: item.job, blockers: item.blockers })),
     next:
-      "Open the live descriptions for the ranked jobs, compare every material requirement to evidence, let the applicant remove roles, then prepare no more than the selected applications.",
+      "Open the live descriptions for the ranked jobs, verify every fit claim with buffalo.verify_job_fit, let the applicant remove roles, then prepare no more than the selected applications.",
   };
 }
